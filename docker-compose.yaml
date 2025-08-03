@@ -1,0 +1,41 @@
+services:
+  svc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # Explicitly set platform for mixed architecture environments
+      args:
+        - BUILDPLATFORM=linux/x86_64
+    platform: linux/x86_64
+    ports:
+      - "8080:8080"
+
+      - "3001:3000"
+
+
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/postgres
+      - RUST_LOG=debug
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:17
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
