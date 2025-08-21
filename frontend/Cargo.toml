@@ -1,5 +1,5 @@
 [package]
-name = "plant-manager-frontend"
+name = "frontend"
 version = "0.1.0"
 edition = "2021"
 authors = ["Noah <noahshomette@gmail.com>"]
@@ -14,7 +14,9 @@ reqwest = { version = "0.12.22" }
 console_log = "1"
 log = "0.4"
 console_error_panic_hook = "0.1"
-
+thaw = { version = "0.5.0-beta", features = ["csr"] }
+shared = { path = "../shared" }
+reactive_stores = "0.2.5"
 # utils
 # strum = { version = "0.25", features = ["derive", "strum_macros"] }
 # strum_macros = "0.25"

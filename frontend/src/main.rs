@@ -1,5 +1,5 @@
+use frontend::App;
 use leptos::prelude::*;
-use plant_manager_frontend::App;
 
 fn main() {
     // set up logging
@@ -7,8 +7,6 @@ fn main() {
     console_error_panic_hook::set_once();
 
     mount_to_body(|| {
-        view! {
-            <App />
-        }
+        view! { <App /> }
     })
 }

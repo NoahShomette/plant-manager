@@ -25,7 +25,7 @@ async fn health_check() -> Option<String> {
     let client = reqwest::Client::new();
     Some(
         client
-            .get("http://localhost:8080/health_check")
+            .get("http://localhost:8080/")
             .header(ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost")
             .send()
             .await
