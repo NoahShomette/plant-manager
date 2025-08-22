@@ -3,6 +3,17 @@ name = "shared"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+sqlx = ["dep:sqlx"]
+
 [dependencies]
 chrono = { version = "0.4.41" }
 serde = { version = "1", features = ["derive"] }
+uuid = { version = "1.18.0", features = ["v4", "serde"] }
+sqlx = { version = "0.8", features = [
+    "runtime-tokio-rustls",
+    "any",
+    "postgres",
+    "uuid",
+    "json",
+], optional = true }

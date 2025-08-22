@@ -1,2 +1,1 @@
-mod plants_table;
-mod plants_access;
+pub mod plants_access;

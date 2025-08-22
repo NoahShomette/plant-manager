@@ -1,23 +1,19 @@
+//! A page for creating new plants
+
 use leptos::prelude::*;
-use thaw::{Button, ConfigProvider, Flex, Theme};
+use thaw::{ConfigProvider, Theme};
 
 use crate::components::new_plant::NewPlant;
 /// Default Home Page
 #[component]
-pub fn Home() -> impl IntoView {
+pub fn NewPlantPage() -> impl IntoView {
     let theme = Theme::use_rw_theme();
 
     view! {
         <ConfigProvider theme>
-
-            <Flex vertical=true>
+            <div class="flex flex-row justify-center">
                 <NewPlant />
-                <Button>"2"</Button>
-                <Button>"3"</Button>
-                <Button>"3"</Button>
-
-            </Flex>
-
+            </div>
         </ConfigProvider>
     }
 }

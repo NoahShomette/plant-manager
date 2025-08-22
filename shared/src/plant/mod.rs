@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use super::HistoryItem;
 
+pub mod plant_http;
+
 /// A Plant that has been saved into the database
 #[derive(Hash, Serialize, Deserialize)]
 pub struct Plant {
@@ -34,7 +36,7 @@ impl Plant {
     }
 }
 
-#[derive(Hash, Serialize, Deserialize)]
+#[derive(Debug, Hash, Serialize, Deserialize)]
 pub enum PlantState {
     Alive,
     Retired,

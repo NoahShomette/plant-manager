@@ -5,15 +5,17 @@ FROM rust:1.85 AS backend_builder
 RUN apt-get update && \
     rustup target add x86_64-unknown-linux-gnu
 
+#RUN cargo install sqlx-cli
+
 # Set the working directory
-WORKDIR /usr/plant-manager-backend/src/app
+WORKDIR /usr/backend/src/app
 
 # Create .cargo/config.toml for cross-compilation
 RUN mkdir -p .cargo
 RUN echo '[target.x86_64-unknown-linux-gnu]' > .cargo/config.toml
 
 # Copy the source code into the container
-COPY ./plant-manager-backend .
+COPY ./backend .
 
 # Build the release version
 RUN cargo build --target x86_64-unknown-linux-gnu --release --all-features
@@ -26,14 +28,14 @@ RUN apt-get update && \
     rustup target add x86_64-unknown-linux-gnu
 
 # Set the working directory
-WORKDIR /usr/plant-manager-frontend/src/app
+WORKDIR /usr/frontend/src/app
 
 # Create .cargo/config.toml for cross-compilation
 RUN mkdir -p .cargo
 RUN echo '[target.x86_64-unknown-linux-gnu]' > .cargo/config.toml
 
 # Copy the source code into the container
-COPY ./plant-manager-frontend .
+COPY ./frontend .
 
 # Build the release version
 RUN cargo build --target x86_64-unknown-linux-gnu --release --all-features
@@ -52,20 +54,20 @@ RUN useradd appuser
 WORKDIR /app
 
 # Copy the binary from the builder stage
-COPY --from=backend_builder /usr/plant-manager-backend/src/app/target/x86_64-unknown-linux-gnu/release/plant-manager-backend ./plant-manager-backend
-COPY --from=frontend_builder /usr/plant-manager-frontend/src/app/target/x86_64-unknown-linux-gnu/release/plant-manager-frontend ./plant-manager-frontend
-
+COPY --from=backend_builder /usr/backend/src/app/target/x86_64-unknown-linux-gnu/release/backend ./backend
+COPY --from=frontend_builder /usr/frontend/src/app/target/x86_64-unknown-linux-gnu/release/frontend ./frontend
+#COPY --from=backend_builder $HOME/.cargo/bin/sqlx-cli sqlx-cli
 
 # Copy static assets
-COPY ./plant-manager-backend/assets ./assets/
+COPY ./backend/assets ./assets/
 
 
 # Set the ownership and permissions
-RUN chown appuser:appuser ./plant-manager-backend && \
-    chmod 755 ./plant-manager-backend
+RUN chown appuser:appuser ./backend && \
+    chmod 755 ./backend
 # Set the ownership and permissions
-RUN chown appuser:appuser ./plant-manager-frontend && \
-    chmod 755 ./plant-manager-frontend
+RUN chown appuser:appuser ./frontend && \
+    chmod 755 ./frontend
 # Switch to the non-root user
 USER appuser
 
@@ -73,4 +75,4 @@ USER appuser
 EXPOSE 8080
 
 # Start the application
-CMD ["./plant-manager-backend", "./plant-manager-frontend"]
+CMD ["./backend", "./frontend"]

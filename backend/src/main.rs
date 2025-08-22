@@ -45,6 +45,14 @@ async fn main() {
         .await
         .expect("can't connect to database");
 
+    match sqlx::migrate!("./migrations").run(&pool).await {
+        Ok(_) => println!("Successfuly Migrated Database"),
+        Err(failed_migration) => panic!(
+            "Failed to migrate database with error: {}",
+            failed_migration
+        ),
+    }
+
     let state = AppState {
         database_pools: pool,
     };

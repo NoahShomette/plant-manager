@@ -15,7 +15,7 @@ mod pages;
 // Top-Level pages
 use crate::{
     components::navbar::Navbar,
-    pages::{gallery::Gallery, home::Home, plant_page::PlantPage},
+    pages::{gallery::Gallery, home::Home, new_plant::NewPlantPage, plant_page::PlantPage},
 };
 
 #[derive(Clone, Debug, Default, Store)]
@@ -58,18 +58,13 @@ pub fn App() -> impl IntoView {
                 <Routes fallback=|| view! { NotFound }>
                     <Route path=path!("/") view=Home />
                     <Route path=path!("/gallery") view=Gallery />
-                    <ParentRoute path=path!("/plant") view=Gallery>
-                        <ParentRoute path=path!(":id") view=PlantPage>
-                            <Route
-                                path=path!("")
-                                view=|| view! { <div class="tab">"(Contact Info)"</div> }
-                            />
-                            <Route
-                                path=path!("conversations")
-                                view=|| view! { <div class="tab">"(Conversations)"</div> }
-                            />
+                    <ParentRoute path=path!("/plant") view=|| view! { <Outlet /> }>
+                        <Route path=path!("/new") view=NewPlantPage />
+                        <ParentRoute path=path!("/view/:id") view=PlantPage>
+                            <Route path=path!("") view=|| view! {} />
+                        // <Route path=path!("conversations") view=|| view! {} /> // Example of having a sub path to the id url - use this for the edit/timeline pages?
                         </ParentRoute>
-                        <Route path=path!("") view=Gallery />
+                    // <Route path=path!("") view=Gallery />
                     </ParentRoute>
 
                 </Routes>

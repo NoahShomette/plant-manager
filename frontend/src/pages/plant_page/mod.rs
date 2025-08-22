@@ -2,24 +2,25 @@
 //!
 //! Includes Timeline and Edit views
 
-use leptos::{prelude::*, reactive::spawn_local};
-use reqwest::header::ACCESS_CONTROL_ALLOW_ORIGIN;
+use leptos::prelude::*;
+use leptos_router::hooks::use_params_map;
 use thaw::{Button, ConfigProvider, Flex, Theme};
-
-use crate::components::new_plant::NewPlant;
 /// Default Home Page
 #[component]
 pub fn PlantPage() -> impl IntoView {
+    // we can access the :id param reactively with `use_params_map`
+    let params = use_params_map();
+    let id = move || params.read().get("id").unwrap_or_default();
+
     let theme = Theme::use_rw_theme();
 
     view! {
         <ConfigProvider theme>
 
             <Flex vertical=true>
-                <NewPlant />
-                <Button>"2"</Button>
+                <Button>{id}</Button>
                 <Button>"3"</Button>
-                <Button>"3"</Button>
+                <Button>"Create Plant"</Button>
 
             </Flex>
 

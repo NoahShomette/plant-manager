@@ -10,7 +10,7 @@ authors = ["Noah <noahshomette@gmail.com>"]
 leptos = { version = "0.8", features = ["csr"] }
 leptos_meta = { version = "0.8" }
 leptos_router = { version = "0.8" }
-reqwest = { version = "0.12.22" }
+reqwest = { version = "0.12.22", features = ["json"] }
 console_log = "1"
 log = "0.4"
 console_error_panic_hook = "0.1"

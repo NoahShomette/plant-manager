@@ -11,10 +11,11 @@ pub fn Navbar() -> impl IntoView {
             </Flex>
 
             <Flex vertical=false align=FlexAlign::Center justify=FlexJustify::Center>
+                <Link href="/plant/new">"New Plant"</Link>
+                <Divider vertical=true></Divider>
                 <Link href="/gallery">"Plants"</Link>
                 <Link href="/settings">"Settings"</Link>
             </Flex>
-
         </Flex>
     }
 }
