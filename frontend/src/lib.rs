@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use leptos::{prelude::*, server::codee::string::JsonSerdeCodec};
 use leptos_meta::*;
 use leptos_router::{components::*, path};
@@ -13,6 +15,7 @@ use thaw::{ConfigProvider, Theme};
 mod components;
 mod pages;
 mod plant_storage;
+mod theme;
 
 // Top-Level pages
 use crate::{
@@ -48,11 +51,10 @@ pub fn App() -> impl IntoView {
         write: set_state,
     });
 
-    let theme = RwSignal::new(Theme::dark());
+    let theme = RwSignal::new(theme::update_theme());
 
     view! {
         <ConfigProvider theme>
-
             <Stylesheet id="leptos" href="/style/output.css" />
             <Html attr:lang="en" attr:dir="ltr" attr:data-theme="light" />
 
@@ -65,21 +67,21 @@ pub fn App() -> impl IntoView {
             <div class="flex flex-col h-screen justify-stretch">
                 <Navbar />
                 <div class="bg-(--background) h-full">
-                        <Router>
-                            <Routes fallback=|| view! { NotFound }>
-                                <Route path=path!("/") view=Home />
-                                <Route path=path!("/gallery") view=Gallery />
-                                <ParentRoute path=path!("/plant") view=|| view! { <Outlet /> }>
-                                    <Route path=path!("/new") view=NewPlantPage />
-                                    <ParentRoute path=path!("/view/:id") view=PlantPage>
-                                        <Route path=path!("") view=|| view! {} />
-                                    // <Route path=path!("conversations") view=|| view! {} /> // Example of having a sub path to the id url - use this for the edit/timeline pages?
-                                    </ParentRoute>
-                                // <Route path=path!("") view=Gallery />
+                    <Router>
+                        <Routes fallback=|| view! { NotFound }>
+                            <Route path=path!("/") view=Home />
+                            <Route path=path!("/gallery") view=Gallery />
+                            <ParentRoute path=path!("/plant") view=|| view! { <Outlet /> }>
+                                <Route path=path!("/new") view=NewPlantPage />
+                                <ParentRoute path=path!("/view/:id") view=PlantPage>
+                                    <Route path=path!("") view=|| view! {} />
+                                // <Route path=path!("conversations") view=|| view! {} /> // Example of having a sub path to the id url - use this for the edit/timeline pages?
                                 </ParentRoute>
+                            // <Route path=path!("") view=Gallery />
+                            </ParentRoute>
 
-                            </Routes>
-                        </Router>
+                        </Routes>
+                    </Router>
                 </div>
                 <Footer />
             </div>

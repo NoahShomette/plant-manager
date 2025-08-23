@@ -1,5 +1,4 @@
 use leptos::prelude::*;
-use thaw::{Link, Theme};
 use uuid::Uuid;
 
 use crate::plant_storage::PlantStorageContext;
@@ -7,8 +6,6 @@ use crate::plant_storage::PlantStorageContext;
 #[component]
 pub fn PlantCard(plant_id: Uuid) -> impl IntoView {
     let plant_storage_context: PlantStorageContext = expect_context::<PlantStorageContext>();
-    let theme = Theme::use_rw_theme();
-
     let plant = plant_storage_context.get.get();
     let plant = plant
         .hashmap
@@ -19,10 +16,12 @@ pub fn PlantCard(plant_id: Uuid) -> impl IntoView {
     let plant_name = plant.name.state().unwrap().1.clone();
 
     view! {
-        <Link href=format!("/plant/view/{}", plant_id.to_string())>
-            <div class="bg-(--card) p-3 rounded-(--radius) w-[300px]">
-                <h1>{plant_name}</h1>
+        <a href=format!("/plant/view/{}", plant_id.to_string())>
+            <div class="bg-(--card) p-3 rounded-(--radius) w-[300px] hover:scale-105 transition duration-150">
+                <h2 class="text-(--foreground) p-3 text-lg font-bold tracking-wide">
+                    {plant_name}
+                </h2>
             </div>
-        </Link>
+        </a>
     }
 }

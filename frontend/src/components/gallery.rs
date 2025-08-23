@@ -1,6 +1,5 @@
 //! Generic gallery component that shows users plants with customizable options for what settings to show alongside them
 use leptos::prelude::*;
-use thaw::{Flex, FlexJustify};
 
 use crate::{components::plant_card::PlantCard, plant_storage::PlantStorageContext};
 
@@ -14,7 +13,7 @@ pub fn GalleryComponent() -> impl IntoView {
             <For
                 each=move || plants_iter.clone()
                 key=|item| item.0
-                children=|(id, item)| {
+                children=|(id, _item)| {
                     view! { <PlantCard plant_id=id /> }
                 }
             />

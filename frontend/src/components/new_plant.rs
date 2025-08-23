@@ -1,8 +1,9 @@
-use chrono::Utc;
+use chrono::{Local, Utc};
+use image::ImageReader;
 use leptos::{prelude::*, reactive::spawn_local};
 use reactive_stores::Store;
 use shared::plant::{plant_http::NewPlant, Plant};
-use thaw::{Button, Input, Label};
+use thaw::{Button, DatePicker, FileList, Input, Label, Theme, Upload};
 
 use crate::{
     plant_storage::{PlantStorage, PlantStorageContext},
@@ -16,7 +17,7 @@ pub fn NewPlant() -> impl IntoView {
     let reqwest_client: Store<FrontEndState> = expect_context::<Store<FrontEndState>>();
     let plant_storage_context: PlantStorageContext = expect_context::<PlantStorageContext>();
     let submit_response_2 = RwSignal::new("Unknown".to_string());
-
+    let date_value = RwSignal::new(Local::now().date_naive());
     let click = move |_| {
         spawn_local(submit_new_plant(
             submit_response,
@@ -28,13 +29,32 @@ pub fn NewPlant() -> impl IntoView {
         ))
     };
 
+    //let uploaded_images = RwSignal::new(Image)
+
+    let custom_request = move |file_list: FileList| {
+        let len = file_list.length();
+        for file_index in 0..file_list.length(){
+            let Some(file) = file_list.get(file_index) else{
+                break;
+            };
+
+            let buffer = file.stream();
+            
+            ImageReader::new(file.stream());
+
+        }
+    };
+
     view! {
         <div class="flex flex-col justify-center py-3 px-5">
             <div class="flex flex-row justify-center items-center py-3 gap-2">
-                <Input value placeholder="Name plant" />
+                <Input value placeholder="Name Placeholder" />
                 <Label>{move || submit_response.get()}</Label>
             </div>
-
+            <DatePicker value=date_value />
+            <Upload custom_request>
+                <Button>"upload"</Button>
+            </Upload>
             <Button on_click=click>"Create new Plant"</Button>
             <Label>{move || submit_response_2.get()}</Label>
 

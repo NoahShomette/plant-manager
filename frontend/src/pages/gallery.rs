@@ -1,5 +1,4 @@
 use leptos::prelude::*;
-use thaw::Theme;
 
 use crate::components::gallery::GalleryComponent;
 /// Default Home Page
