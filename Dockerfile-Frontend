@@ -1,0 +1,30 @@
+# Stage 2: Build
+FROM rust:1.89 AS frontend_builder
+
+# Install cross-compilation dependencies
+RUN apt-get update && \
+    rustup target add wasm32-unknown-unknown && \
+    cargo install --locked trunk
+
+# Set the working directory
+WORKDIR /usr/frontend/src/app
+
+# Create .cargo/config.toml for cross-compilation
+RUN mkdir -p .cargo
+RUN echo '[target.wasm32-unknown-unknown]' > .cargo/config.toml
+
+# Copy the source code into the container
+COPY ./frontend .
+COPY ./shared ../shared
+
+# Build the release version
+RUN trunk build --release
+
+FROM nginx:alpine
+# Copy the config files
+COPY --from=frontend_builder /usr/frontend/src/app/conf/ /etc/nginx/
+# Clears the static files
+RUN rm -rf /usr/share/nginx/html
+COPY --from=frontend_builder /usr/frontend/src/app/dist /usr/share/nginx/html/
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

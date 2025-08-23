@@ -10,6 +10,7 @@ authors = ["Noah <noahshomette@gmail.com>"]
 leptos = { version = "0.8", features = ["csr"] }
 leptos_meta = { version = "0.8" }
 leptos_router = { version = "0.8" }
+leptos-use = { version = "0.16.2", features = ["storage"] }
 reqwest = { version = "0.12.22", features = ["json"] }
 console_log = "1"
 log = "0.4"
@@ -17,6 +18,11 @@ console_error_panic_hook = "0.1"
 thaw = { version = "0.5.0-beta", features = ["csr"] }
 shared = { path = "../shared" }
 reactive_stores = "0.2.5"
+chrono = { version = "0.4.41" }
+uuid = { version = "1.18.0", features = ["v4", "serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
 # utils
 # strum = { version = "0.25", features = ["derive", "strum_macros"] }
 # strum_macros = "0.25"

@@ -1,6 +1,7 @@
-use leptos::prelude::*;
+use leptos::{prelude::*, server::codee::string::JsonSerdeCodec};
 use leptos_meta::*;
 use leptos_router::{components::*, path};
+use leptos_use::storage::use_local_storage;
 use reactive_stores::Store;
 use reqwest::{
     header::{self, ACCESS_CONTROL_ALLOW_ORIGIN},
@@ -11,11 +12,13 @@ use thaw::{ConfigProvider, Theme};
 // Modules
 mod components;
 mod pages;
+mod plant_storage;
 
 // Top-Level pages
 use crate::{
-    components::navbar::Navbar,
+    components::{footer::Footer, navbar::Navbar},
     pages::{gallery::Gallery, home::Home, new_plant::NewPlantPage, plant_page::PlantPage},
+    plant_storage::{PlantStorage, PlantStorageContext},
 };
 
 #[derive(Clone, Debug, Default, Store)]
@@ -39,6 +42,12 @@ pub fn App() -> impl IntoView {
         .expect("Reqwest Client Build failed");
 
     provide_context(Store::new(FrontEndState { client }));
+    let (state, set_state, _) = use_local_storage::<PlantStorage, JsonSerdeCodec>("my-plants");
+    provide_context(PlantStorageContext {
+        get: state,
+        write: set_state,
+    });
+
     let theme = RwSignal::new(Theme::dark());
 
     view! {
@@ -53,22 +62,27 @@ pub fn App() -> impl IntoView {
             // injects metadata in the <head> of the page
             <Meta charset="UTF-8" />
             <Meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <Navbar />
-            <Router>
-                <Routes fallback=|| view! { NotFound }>
-                    <Route path=path!("/") view=Home />
-                    <Route path=path!("/gallery") view=Gallery />
-                    <ParentRoute path=path!("/plant") view=|| view! { <Outlet /> }>
-                        <Route path=path!("/new") view=NewPlantPage />
-                        <ParentRoute path=path!("/view/:id") view=PlantPage>
-                            <Route path=path!("") view=|| view! {} />
-                        // <Route path=path!("conversations") view=|| view! {} /> // Example of having a sub path to the id url - use this for the edit/timeline pages?
-                        </ParentRoute>
-                    // <Route path=path!("") view=Gallery />
-                    </ParentRoute>
+            <div class="flex flex-col h-screen justify-stretch">
+                <Navbar />
+                <div class="bg-(--background) h-full">
+                        <Router>
+                            <Routes fallback=|| view! { NotFound }>
+                                <Route path=path!("/") view=Home />
+                                <Route path=path!("/gallery") view=Gallery />
+                                <ParentRoute path=path!("/plant") view=|| view! { <Outlet /> }>
+                                    <Route path=path!("/new") view=NewPlantPage />
+                                    <ParentRoute path=path!("/view/:id") view=PlantPage>
+                                        <Route path=path!("") view=|| view! {} />
+                                    // <Route path=path!("conversations") view=|| view! {} /> // Example of having a sub path to the id url - use this for the edit/timeline pages?
+                                    </ParentRoute>
+                                // <Route path=path!("") view=Gallery />
+                                </ParentRoute>
 
-                </Routes>
-            </Router>
+                            </Routes>
+                        </Router>
+                </div>
+                <Footer />
+            </div>
         </ConfigProvider>
     }
 }

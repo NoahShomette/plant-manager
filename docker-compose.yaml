@@ -1,5 +1,5 @@
 services:
-  svc:
+  plant-manager-backend:
     build:
       context: .
       dockerfile: Dockerfile
@@ -8,17 +8,29 @@ services:
         - BUILDPLATFORM=linux/x86_64
     platform: linux/x86_64
     ports:
+      # Static files
       - "8080:8080"
-
+      # Backend
       - "3001:3000"
-
-
     environment:
       - DATABASE_URL=postgres://postgres:postgres@db:5432/postgres
       - RUST_LOG=debug
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - plant-manager-data:/var/public
+
+  plant-manager-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile-Frontend
+      args:
+        - BUILDPLATFORM=linux/x86_64
+    container_name: plant-manager-frontend
+    ports:
+      - 3000:80
+    restart: unless-stopped
 
   db:
     image: postgres:17
@@ -39,3 +51,4 @@ services:
 
 volumes:
   pgdata:
+  plant-manager-data:

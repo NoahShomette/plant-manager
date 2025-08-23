@@ -2,14 +2,16 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 
 use chrono::NaiveTime;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use super::HistoryItem;
 
 pub mod plant_http;
 
 /// A Plant that has been saved into the database
-#[derive(Hash, Serialize, Deserialize)]
+#[derive(Debug, Hash, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Plant {
+    pub id: Uuid,
     pub name: HistoryItem<String>,
     //pub extra_data: Vec<(String, HistoryItem<ExtraData>)>,
     //pub location: HistoryItem<Location>,
@@ -20,6 +22,7 @@ pub struct Plant {
 impl Plant {
     pub fn new(name: String, location: Location) -> Plant {
         Plant {
+            id: Uuid::new_v4(),
             name: HistoryItem::new(name),
             //extra_data: vec![],
             //location: HistoryItem::new(location),
@@ -36,7 +39,7 @@ impl Plant {
     }
 }
 
-#[derive(Debug, Hash, Serialize, Deserialize)]
+#[derive(Debug, Hash, Serialize, Deserialize, Clone, PartialEq)]
 pub enum PlantState {
     Alive,
     Retired,

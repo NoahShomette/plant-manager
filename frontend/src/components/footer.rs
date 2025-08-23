@@ -2,13 +2,11 @@ use leptos::prelude::*;
 use thaw::{Divider, Flex, FlexAlign, FlexJustify, Link};
 
 #[component]
-pub fn Navbar() -> impl IntoView {
+pub fn Footer() -> impl IntoView {
     view! {
-        <Flex vertical=false justify=FlexJustify::SpaceBetween class="py-3 px-5 bg-(--muted)">
+        <Flex vertical=false justify=FlexJustify::SpaceBetween class="py-3 px-5 color-sidebar-accent">
             <Flex vertical=false align=FlexAlign::Center>
-                <a class="text-(--primary) hover:text-(--secondary)" href="/">
-                    "House of Eden"
-                </a>
+                <Link href="/">"House of Eden"</Link>
                 <Divider vertical=true></Divider>
             </Flex>
 

@@ -1,5 +1,7 @@
+pub mod footer;
 pub mod gallery;
 pub mod navbar;
+pub mod navigation_components;
 /// A component that allows creating a new plant
 ///
 /// Includes fields for plant settings

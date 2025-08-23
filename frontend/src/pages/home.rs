@@ -8,8 +8,7 @@ pub fn Home() -> impl IntoView {
     let theme = Theme::use_rw_theme();
 
     view! {
-        <ConfigProvider theme>
-
+        <div class="bg-background">
             <Flex vertical=true>
                 <NewPlant />
                 <Button>"2"</Button>
@@ -17,7 +16,6 @@ pub fn Home() -> impl IntoView {
                 <Button>"3"</Button>
 
             </Flex>
-
-        </ConfigProvider>
+        </div>
     }
 }
