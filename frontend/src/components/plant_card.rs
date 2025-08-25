@@ -6,14 +6,14 @@ use crate::plant_storage::PlantStorageContext;
 #[component]
 pub fn PlantCard(plant_id: Uuid) -> impl IntoView {
     let plant_storage_context: PlantStorageContext = expect_context::<PlantStorageContext>();
-    let plant = plant_storage_context.get.get();
+    let plant = plant_storage_context.get_plant_storage.get();
     let plant = plant
-        .hashmap
+        .plants
         .get(&plant_id)
         .expect("Plant not found in storage")
         .clone();
 
-    let plant_name = plant.name.state().unwrap().1.clone();
+    let plant_name = plant.0.name.clone();
 
     view! {
         <a href=format!("/plant/view/{}", plant_id.to_string())>

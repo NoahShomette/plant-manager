@@ -34,8 +34,8 @@ pub fn Navbar() -> impl IntoView {
                     "Plants"
                 </a>
                 <a
-                    class="text-(--foreground) hover:bg-(--accent) p-1 px-2 rounded-(--radius) text-lg font-bold tracking-wide"
                     href="/settings"
+                    class="text-(--foreground) hover:bg-(--accent) p-1 px-2 rounded-(--radius) text-lg font-bold tracking-wide"
                 >
                     "Settings"
                 </a>

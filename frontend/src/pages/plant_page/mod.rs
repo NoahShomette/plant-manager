@@ -19,16 +19,17 @@ pub fn PlantPage() -> impl IntoView {
     };
     let plant_storage_context: PlantStorageContext = expect_context::<PlantStorageContext>();
 
-    let plant = plant_storage_context.get.get();
+    let plant = plant_storage_context.get_plant_storage.get();
     let plant = plant
-        .hashmap
+        .plants
         .get(&plant_id)
         .expect("Plant not found in storage")
         .clone();
 
-    let plant_name = plant.name.state().unwrap().1.clone();
+    let plant_name = plant.0.name.clone();
 
-    view! {
-        <p>{plant_name}</p>
-    }
+    // TODO: Update plant page to use the full Plant rather than Plant demographic. The plant page should request the full plant from the server if it doesnt have it already
+    //    let plant_name = plant.0.name.state().unwrap().1.clone();
+
+    view! { <p>{plant_name}</p> }
 }

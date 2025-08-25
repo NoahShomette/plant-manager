@@ -1,21 +1,32 @@
 //! Generic gallery component that shows users plants with customizable options for what settings to show alongside them
 use leptos::prelude::*;
+use thaw::Pagination;
 
 use crate::{components::plant_card::PlantCard, plant_storage::PlantStorageContext};
 
 #[component]
 pub fn GalleryComponent() -> impl IntoView {
     let plant_storage_context: PlantStorageContext = expect_context::<PlantStorageContext>();
-    let plant = plant_storage_context.get.get();
-    let plants_iter = plant.hashmap.clone();
+    //let plant = move || plant_storage_context.get_plant_storage.get();
+    let page_count =
+        move || 1usize.max(plant_storage_context.get_plant_storage.get().plants.len() / 20);
+    let current_page = RwSignal::new(1);
     view! {
-        <div class="flex flex-wrap gap-3 p-3 justify-center">
-            <For
-                each=move || plants_iter.clone()
-                key=|item| item.0
-                children=|(id, _item)| {
-                    view! { <PlantCard plant_id=id /> }
-                }
+        <div class="flex flex-col justify-center content-center">
+            <div class="flex flex-wrap gap-3 p-3 justify-center">
+                <For
+                    each=move || plant_storage_context.get_plant_storage.get().plants.clone()
+                    key=|item| item.0
+                    children=|(id, _item)| {
+                        view! { <PlantCard plant_id=id /> }
+                    }
+                />
+            </div>
+            <Pagination
+                page=current_page
+                page_count=1
+                sibling_count=1
+                class="justify-center"
             />
         </div>
     }

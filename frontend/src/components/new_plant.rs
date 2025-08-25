@@ -2,11 +2,12 @@ use chrono::{Local, Utc};
 use image::ImageReader;
 use leptos::{prelude::*, reactive::spawn_local};
 use reactive_stores::Store;
-use shared::plant::{plant_http::NewPlant, Plant};
+use shared::plant::{plant_http::NewPlant, Plant, PlantDemographic};
 use thaw::{Button, DatePicker, FileList, Input, Label, Theme, Upload};
+use uuid::Uuid;
 
 use crate::{
-    plant_storage::{PlantStorage, PlantStorageContext},
+    plant_storage::{PlantList, PlantStorage, PlantStorageContext},
     FrontEndState,
 };
 
@@ -24,8 +25,8 @@ pub fn NewPlant() -> impl IntoView {
             submit_response_2,
             value.get(),
             reqwest_client.get(),
-            plant_storage_context.get.get(),
-            plant_storage_context.write,
+            plant_storage_context.get_plant_storage.get(),
+            plant_storage_context.write_plant_storage,
         ))
     };
 
@@ -33,15 +34,14 @@ pub fn NewPlant() -> impl IntoView {
 
     let custom_request = move |file_list: FileList| {
         let len = file_list.length();
-        for file_index in 0..file_list.length(){
-            let Some(file) = file_list.get(file_index) else{
+        for file_index in 0..file_list.length() {
+            let Some(file) = file_list.get(file_index) else {
                 break;
             };
 
             let buffer = file.stream();
-            
-            ImageReader::new(file.stream());
 
+            //ImageReader::new(file.stream());
         }
     };
 
@@ -95,14 +95,12 @@ async fn submit_new_plant(
         return;
     };
 
-    let Ok(new_plant) = serde_json::de::from_str::<Plant>(&body_text) else {
+    let Ok(new_plant) = serde_json::de::from_str::<PlantDemographic>(&body_text) else {
         *submit_response_2.write() = "ERROR Deserializing New Plant".to_string();
         return;
     };
 
-    plant_storage
-        .hashmap
-        .insert(new_plant.id, new_plant.clone());
+    plant_storage.plants.insert(new_plant.id, (new_plant.clone(), None));
 
     *plant_storage_write.write() = plant_storage;
 

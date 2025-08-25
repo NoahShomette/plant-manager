@@ -124,11 +124,11 @@ pub(super) fn update_theme() -> Theme {
 
     theme
         .color
-        .set_color_neutral_foreground_on_brand("#d4af37".to_string());
+        .set_color_neutral_foreground_on_brand("#1a211a".to_string());
 
     theme
         .color
-        .set_color_neutral_foreground_inverted("#d4af37".to_string());
+        .set_color_neutral_foreground_inverted("#1a211a".to_string());
 
     //
 

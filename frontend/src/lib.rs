@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use leptos::{prelude::*, server::codee::string::JsonSerdeCodec};
 use leptos_meta::*;
 use leptos_router::{components::*, path};
@@ -9,7 +7,7 @@ use reqwest::{
     header::{self, ACCESS_CONTROL_ALLOW_ORIGIN},
     Client,
 };
-use thaw::{ConfigProvider, Theme};
+use thaw::ConfigProvider;
 
 // Modules
 mod components;
@@ -21,7 +19,10 @@ mod theme;
 use crate::{
     components::{footer::Footer, navbar::Navbar},
     pages::{gallery::Gallery, home::Home, new_plant::NewPlantPage, plant_page::PlantPage},
-    plant_storage::{PlantStorage, PlantStorageContext},
+    plant_storage::{
+        PlantList, PlantStorage, PlantStorageComponent, PlantStorageContext,
+        PlantVerificationRequestContext, PlantVerificationRequests,
+    },
 };
 
 #[derive(Clone, Debug, Default, Store)]
@@ -45,46 +46,61 @@ pub fn App() -> impl IntoView {
         .expect("Reqwest Client Build failed");
 
     provide_context(Store::new(FrontEndState { client }));
+
     let (state, set_state, _) = use_local_storage::<PlantStorage, JsonSerdeCodec>("my-plants");
+    let (pl_state, pl_set_state, _) = use_local_storage::<PlantList, JsonSerdeCodec>("plant-list");
+    let (pv, pv_set, _) = use_local_storage::<PlantVerificationRequests, JsonSerdeCodec>(
+        "plant-verify",
+    );
+
+    provide_context(PlantVerificationRequestContext {
+        get: pv,
+        write: pv_set,
+    });
+
     provide_context(PlantStorageContext {
-        get: state,
-        write: set_state,
+        get_plant_storage: state,
+        write_plant_storage: set_state,
+        get_plant_list: pl_state,
+        write_plant_list: pl_set_state,
     });
 
     let theme = RwSignal::new(theme::update_theme());
 
     view! {
         <ConfigProvider theme>
-            <Stylesheet id="leptos" href="/style/output.css" />
-            <Html attr:lang="en" attr:dir="ltr" attr:data-theme="light" />
+            <PlantStorageComponent>
+                <Stylesheet id="leptos" href="/style/output.css" />
+                <Html attr:lang="en" attr:dir="ltr" attr:data-theme="light" />
 
-            // sets the document title
-            <Title text="Household of Eden" />
+                // sets the document title
+                <Title text="Household of Eden" />
 
-            // injects metadata in the <head> of the page
-            <Meta charset="UTF-8" />
-            <Meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <div class="flex flex-col h-screen justify-stretch">
-                <Navbar />
-                <div class="bg-(--background) h-full">
-                    <Router>
-                        <Routes fallback=|| view! { NotFound }>
-                            <Route path=path!("/") view=Home />
-                            <Route path=path!("/gallery") view=Gallery />
-                            <ParentRoute path=path!("/plant") view=|| view! { <Outlet /> }>
-                                <Route path=path!("/new") view=NewPlantPage />
-                                <ParentRoute path=path!("/view/:id") view=PlantPage>
-                                    <Route path=path!("") view=|| view! {} />
-                                // <Route path=path!("conversations") view=|| view! {} /> // Example of having a sub path to the id url - use this for the edit/timeline pages?
+                // injects metadata in the <head> of the page
+                <Meta charset="UTF-8" />
+                <Meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <div class="flex flex-col h-screen justify-stretch">
+                    <Navbar />
+                    <div class="bg-(--background) h-full">
+                        <Router>
+                            <Routes fallback=|| view! { NotFound }>
+                                <Route path=path!("/") view=Home />
+                                <Route path=path!("/gallery") view=Gallery />
+                                <ParentRoute path=path!("/plant") view=|| view! { <Outlet /> }>
+                                    <Route path=path!("/new") view=NewPlantPage />
+                                    <ParentRoute path=path!("/view/:id") view=PlantPage>
+                                        <Route path=path!("") view=|| view! {} />
+                                    // <Route path=path!("conversations") view=|| view! {} /> // Example of having a sub path to the id url - use this for the edit/timeline pages?
+                                    </ParentRoute>
+                                // <Route path=path!("") view=Gallery />
                                 </ParentRoute>
-                            // <Route path=path!("") view=Gallery />
-                            </ParentRoute>
 
-                        </Routes>
-                    </Router>
+                            </Routes>
+                        </Router>
+                    </div>
+                    <Footer />
                 </div>
-                <Footer />
-            </div>
+            </PlantStorageComponent>
         </ConfigProvider>
     }
 }
