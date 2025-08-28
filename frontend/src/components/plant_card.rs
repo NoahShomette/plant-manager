@@ -16,7 +16,7 @@ pub fn PlantCard(plant_id: Uuid) -> impl IntoView {
     let plant_name = plant.0.name.clone();
 
     view! {
-        <a href=format!("/plant/view/{}", plant_id.to_string())>
+        <a href=format!("/plant/{}/view", plant_id.to_string())>
             <div class="bg-(--card) p-3 rounded-(--radius) w-[300px] hover:scale-105 transition duration-150">
                 <h2 class="text-(--foreground) p-3 text-lg font-bold tracking-wide">
                     {plant_name}

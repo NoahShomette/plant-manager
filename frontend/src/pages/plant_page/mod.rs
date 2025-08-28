@@ -4,6 +4,7 @@
 
 use leptos::prelude::*;
 use leptos_router::hooks::use_params_map;
+use shared::plant::plant_events::{PlantEvent, PlantEventKind};
 use uuid::Uuid;
 
 use crate::plant_storage::PlantStorageContext;
@@ -31,5 +32,14 @@ pub fn PlantPage() -> impl IntoView {
     // TODO: Update plant page to use the full Plant rather than Plant demographic. The plant page should request the full plant from the server if it doesnt have it already
     //    let plant_name = plant.0.name.state().unwrap().1.clone();
 
-    view! { <p>{plant_name}</p> }
+    view! {
+        <div>
+            {serde_json::to_string(
+                &PlantEventKind::new(
+                    "Watered".to_string(),
+                    shared::plant::plant_events::PlantEventDataKind::Day,
+                ),
+            )} <p>{plant_name}</p>
+        </div>
+    }
 }

@@ -49,9 +49,8 @@ pub fn App() -> impl IntoView {
 
     let (state, set_state, _) = use_local_storage::<PlantStorage, JsonSerdeCodec>("my-plants");
     let (pl_state, pl_set_state, _) = use_local_storage::<PlantList, JsonSerdeCodec>("plant-list");
-    let (pv, pv_set, _) = use_local_storage::<PlantVerificationRequests, JsonSerdeCodec>(
-        "plant-verify",
-    );
+    let (pv, pv_set, _) =
+        use_local_storage::<PlantVerificationRequests, JsonSerdeCodec>("plant-verify");
 
     provide_context(PlantVerificationRequestContext {
         get: pv,
@@ -86,14 +85,13 @@ pub fn App() -> impl IntoView {
                             <Routes fallback=|| view! { NotFound }>
                                 <Route path=path!("/") view=Home />
                                 <Route path=path!("/gallery") view=Gallery />
-                                <ParentRoute path=path!("/plant") view=|| view! { <Outlet /> }>
-                                    <Route path=path!("/new") view=NewPlantPage />
-                                    <ParentRoute path=path!("/view/:id") view=PlantPage>
-                                        <Route path=path!("") view=|| view! {} />
-                                    // <Route path=path!("conversations") view=|| view! {} /> // Example of having a sub path to the id url - use this for the edit/timeline pages?
-                                    </ParentRoute>
-                                // <Route path=path!("") view=Gallery />
-                                </ParentRoute>
+                                <Route path=path!("/plant/new") view=NewPlantPage />
+                                <Route path=path!("/plant/:id/view") view=PlantPage />
+                                <Route path=path!("/plant/:id/timeline") view=NewPlantPage />
+                                <Route
+                                    path=path!("/plant/:id/edit")
+                                    view=|| view! { <p>edit</p> }
+                                />
 
                             </Routes>
                         </Router>

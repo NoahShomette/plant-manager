@@ -9,3 +9,4 @@ pub mod plant;
 pub mod plant_demographic;
 pub mod plant_new;
 pub mod plants_verification;
+pub mod plant_events;

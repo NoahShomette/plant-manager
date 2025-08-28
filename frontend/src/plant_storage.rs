@@ -27,6 +27,17 @@ pub fn PlantStorageComponent(children: Children) -> impl IntoView {
     let pv_context: PlantVerificationRequestContext =
         expect_context::<PlantVerificationRequestContext>();
 
+    Effect::new(move |_| {
+        spawn_local(verify_client_plants(
+            reqwest_client.get_untracked(),
+            pv_context.get,
+            pv_context.write,
+            plant_storage_context.get_plant_list,
+            plant_storage_context.write_plant_list,
+            plant_storage_context.write_plant_storage,
+        ))
+    });
+
     set_interval(
         move || {
             Effect::new(move |_| {
@@ -40,7 +51,7 @@ pub fn PlantStorageComponent(children: Children) -> impl IntoView {
                 ))
             });
         },
-        Duration::from_secs(10),
+        Duration::from_secs(60),
     );
 
     //if (last_requested.get_untracked() + Duration::minutes(1)) < Utc::now().naive_utc() {}
@@ -140,6 +151,8 @@ async fn verify_client_plants(
             .write()
             .0
             .retain(|list| list != deleted_plants);
+
+        write_plant_storage.write().plants.remove(deleted_plants);
         // Delete them from the client but eventually queue them and then surface them to the user.
         // Ultimately deleted plants shouldnt occur very often but this will prevent a catastrophic loss of a plant if theres a mistake
         // We will need to include some type of intentionally deleted list so that we dont mess up this list
@@ -147,6 +160,11 @@ async fn verify_client_plants(
 
     for changed_plants in response.changed_plants.iter() {
         // refresh basic demographic data? idk exactly
+        spawn_local(request_plant_demographic(
+            *changed_plants,
+            reqwest_client.clone(),
+            write_plant_storage,
+        ));
     }
 
     // plant_storage.plants.insert(new_plant.id, new_plant.clone());
@@ -183,7 +201,7 @@ async fn request_plant_demographic(
         return;
     };
 
-    let Ok(mut response) = serde_json::de::from_str::<PlantDemographic>(&body_text) else {
+    let Ok(response) = serde_json::de::from_str::<PlantDemographic>(&body_text) else {
         //TODO: Background Error message logging
         return;
     };
@@ -191,5 +209,7 @@ async fn request_plant_demographic(
     plant_storage_writer
         .write()
         .plants
-        .insert(plant_id, (response, None));
+        .entry(plant_id)
+        .and_modify(|(demo, _)| *demo = response.clone())
+        .or_insert((response, None));
 }

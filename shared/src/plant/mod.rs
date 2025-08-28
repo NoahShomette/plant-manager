@@ -7,6 +7,7 @@ use uuid::Uuid;
 use crate::InfallibleHistoryItem;
 
 pub mod plant_http;
+pub mod plant_events;
 
 /// A Plant that has been saved into the database
 #[derive(Debug, Hash, Serialize, Deserialize, Clone, PartialEq)]
