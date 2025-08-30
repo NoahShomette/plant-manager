@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 use uuid::Uuid;
 
-use crate::plant_storage::PlantStorageContext;
+use crate::data_storage::plants::PlantStorageContext;
 
 #[component]
 pub fn PlantCard(plant_id: Uuid) -> impl IntoView {

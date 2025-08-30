@@ -5,12 +5,12 @@ use axum::{
 use chrono::Utc;
 use shared::{
     plant::{plant_http::NewPlant, PlantState},
-    HistoryItem, InfallibleHistoryItem,
+    InfallibleHistoryItem,
 };
 use sqlx::{types::Json, PgPool};
 use uuid::Uuid;
 
-use crate::app::plants::plant_demographic::request_plant_demographic;
+use crate::app::plants::get_demographic::request_plant_demographic;
 
 /// Creates a new plant on the server and returns a basic plant demographic to the client
 pub async fn new_plant(

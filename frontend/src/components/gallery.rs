@@ -2,7 +2,7 @@
 use leptos::prelude::*;
 use thaw::Pagination;
 
-use crate::{components::plant_card::PlantCard, plant_storage::PlantStorageContext};
+use crate::{components::plant_card::PlantCard, data_storage::plants::PlantStorageContext};
 
 #[component]
 pub fn GalleryComponent() -> impl IntoView {

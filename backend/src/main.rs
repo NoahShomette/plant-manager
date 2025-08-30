@@ -13,7 +13,7 @@ mod app;
 mod static_support;
 use static_support::using_serve_dir;
 
-use crate::app::rout_plant;
+use crate::app::{rout_event, rout_plant};
 
 // the application state
 #[derive(Clone)]
@@ -59,6 +59,7 @@ async fn main() {
     let app: Router = Router::new()
         .merge(rout_main())
         .nest("/plants", rout_plant())
+        .nest("/events", rout_event())
         .with_state(state)
         .layer(CorsLayer::permissive());
 

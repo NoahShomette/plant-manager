@@ -1,7 +1,6 @@
-use leptos::{prelude::*, server::codee::string::JsonSerdeCodec};
+use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::{components::*, path};
-use leptos_use::storage::use_local_storage;
 use reactive_stores::Store;
 use reqwest::{
     header::{self, ACCESS_CONTROL_ALLOW_ORIGIN},
@@ -11,18 +10,15 @@ use thaw::ConfigProvider;
 
 // Modules
 mod components;
+mod data_storage;
 mod pages;
-mod plant_storage;
 mod theme;
 
 // Top-Level pages
 use crate::{
     components::{footer::Footer, navbar::Navbar},
+    data_storage::AppStorageComponent,
     pages::{gallery::Gallery, home::Home, new_plant::NewPlantPage, plant_page::PlantPage},
-    plant_storage::{
-        PlantList, PlantStorage, PlantStorageComponent, PlantStorageContext,
-        PlantVerificationRequestContext, PlantVerificationRequests,
-    },
 };
 
 #[derive(Clone, Debug, Default, Store)]
@@ -47,28 +43,11 @@ pub fn App() -> impl IntoView {
 
     provide_context(Store::new(FrontEndState { client }));
 
-    let (state, set_state, _) = use_local_storage::<PlantStorage, JsonSerdeCodec>("my-plants");
-    let (pl_state, pl_set_state, _) = use_local_storage::<PlantList, JsonSerdeCodec>("plant-list");
-    let (pv, pv_set, _) =
-        use_local_storage::<PlantVerificationRequests, JsonSerdeCodec>("plant-verify");
-
-    provide_context(PlantVerificationRequestContext {
-        get: pv,
-        write: pv_set,
-    });
-
-    provide_context(PlantStorageContext {
-        get_plant_storage: state,
-        write_plant_storage: set_state,
-        get_plant_list: pl_state,
-        write_plant_list: pl_set_state,
-    });
-
     let theme = RwSignal::new(theme::update_theme());
 
     view! {
         <ConfigProvider theme>
-            <PlantStorageComponent>
+            <AppStorageComponent>
                 <Stylesheet id="leptos" href="/style/output.css" />
                 <Html attr:lang="en" attr:dir="ltr" attr:data-theme="light" />
 
@@ -98,7 +77,7 @@ pub fn App() -> impl IntoView {
                     </div>
                     <Footer />
                 </div>
-            </PlantStorageComponent>
+            </AppStorageComponent>
         </ConfigProvider>
     }
 }

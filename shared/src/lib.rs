@@ -6,6 +6,7 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
 pub mod plant;
+pub mod events;
 
 /// An item that contains a date history
 #[derive(Debug, Hash, Serialize, Deserialize, Clone, PartialEq)]
@@ -54,6 +55,12 @@ pub struct InfallibleHistoryItem<T: Clone> {
 }
 
 impl<T: Clone> InfallibleHistoryItem<T> {
+    pub fn insert(&mut self, item: T) {
+        self.item
+            .item
+            .insert(Utc::now().naive_utc().and_utc().timestamp(), item);
+    }
+
     pub fn new(item: T) -> InfallibleHistoryItem<T> {
         let now = Utc::now().naive_utc().and_utc().timestamp();
         let history_item = HistoryItem::new_with_timestamp(item.clone(), now);

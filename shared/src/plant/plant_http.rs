@@ -2,6 +2,8 @@ use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::plant::PlantState;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NewPlant {
     pub name: String,
@@ -30,4 +32,10 @@ pub struct VerifyClientPlantListResponse {
     pub deleted_plants: Vec<Uuid>,
     /// Plants that the server has that have changed since the last time the client requested plant verification (Not entirely sure we will use this yet but it could be helpful)
     pub changed_plants: Vec<Uuid>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum ModifyPlant {
+    ChangeName(String),
+    ChangeState(PlantState),
 }

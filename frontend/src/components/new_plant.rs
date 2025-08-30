@@ -1,13 +1,11 @@
 use chrono::{Local, Utc};
-use image::ImageReader;
 use leptos::{prelude::*, reactive::spawn_local};
 use reactive_stores::Store;
-use shared::plant::{plant_http::NewPlant, Plant, PlantDemographic};
-use thaw::{Button, DatePicker, FileList, Input, Label, Theme, Upload};
-use uuid::Uuid;
+use shared::plant::{plant_http::NewPlant, PlantDemographic};
+use thaw::{Button, DatePicker, FileList, Input, Label, Upload};
 
 use crate::{
-    plant_storage::{PlantList, PlantStorage, PlantStorageContext},
+    data_storage::plants::{PlantStorage, PlantStorageContext},
     FrontEndState,
 };
 
@@ -100,7 +98,9 @@ async fn submit_new_plant(
         return;
     };
 
-    plant_storage.plants.insert(new_plant.id, (new_plant.clone(), None));
+    plant_storage
+        .plants
+        .insert(new_plant.id, (new_plant.clone(), None));
 
     *plant_storage_write.write() = plant_storage;
 

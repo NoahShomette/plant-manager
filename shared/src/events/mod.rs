@@ -1,17 +1,25 @@
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
-#[derive(Serialize, Deserialize, Clone)]
-pub struct PlantEventKind {
+pub mod events_http;
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
+pub struct EventType {
+    pub id: Uuid,
     pub name: String,
-    pub kind: PlantEventDataKind,
+    pub kind: EventDataKind,
 }
 
-impl PlantEventKind {
-    pub fn new(name: String, kind: PlantEventDataKind) -> PlantEventKind {
-        PlantEventKind { name, kind }
+impl EventType {
+    pub fn new(name: String, kind: EventDataKind) -> EventType {
+        EventType {
+            name,
+            kind,
+            id: Uuid::new_v4(),
+        }
     }
-    pub fn get(&self) -> &PlantEventDataKind {
+    pub fn get(&self) -> &EventDataKind {
         &self.kind
     }
 }
@@ -20,57 +28,68 @@ impl PlantEventKind {
 ///
 /// It is part of the record of a plants care and life.
 #[derive(Serialize, Deserialize, Clone)]
-pub struct PlantEvent {
+pub struct EventInstance {
     pub name: String,
-    pub data: PlantEventData,
+    pub data: EventData,
 }
 
-impl PlantEvent {
-    pub fn new(name: String, kind: PlantEventData) -> PlantEvent {
-        PlantEvent { name, data: kind }
+impl EventInstance {
+    pub fn new(name: String, kind: EventData) -> EventInstance {
+        EventInstance { name, data: kind }
     }
-    pub fn get(&self) -> &PlantEventData {
+    pub fn get(&self) -> &EventData {
         &self.data
     }
 }
 
 /// The different types of data that a Plant Event can contain that can exist
-#[derive(Serialize, Deserialize, Clone)]
-pub enum PlantEventDataKind {
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
+pub enum EventDataKind {
     /// A specific day
     Day,
     /// A time period between two dates
     Period,
     CustomEnum,
+    Number,
 }
 
 /// The different types of data that a Plant Event can contain that can exist
-#[derive(Serialize, Deserialize, Clone)]
-pub enum PlantEventData {
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum EventData {
     /// A specific day
     Day(NaiveDateTime),
     /// A time period between two dates
     Period(NaiveDateTime, NaiveDateTime),
     CustomEnum(CustomEnum),
+    Number(u64),
 }
 
-impl PlantEventData {
+impl EventData {
     /// Create a new [`PlantEventKind`] of the Day type
-    pub fn new_day(day: NaiveDateTime) -> PlantEventData {
+    pub fn new_day(day: NaiveDateTime) -> EventData {
         Self::Day(day)
     }
 
     /// A fallibale constructor that verifies that start is less than end
-    pub fn new_period(start: NaiveDateTime, end: NaiveDateTime) -> Option<PlantEventData> {
+    pub fn new_period(start: NaiveDateTime, end: NaiveDateTime) -> Option<EventData> {
         if start >= end {
             return None;
         }
         Some(Self::Period(start, end))
     }
+
+    pub fn equals_kind(&self, event_data_kind: EventDataKind) -> bool{
+        return match self{
+            EventData::Day(_) => event_data_kind == EventDataKind::Day,
+            EventData::Period(_, _) => event_data_kind == EventDataKind::Period,
+            EventData::CustomEnum(_) => event_data_kind == EventDataKind::CustomEnum,
+            EventData::Number(_) => event_data_kind == EventDataKind::Number,
+        }
+    }
 }
 
 /// A custom enum, enables user defined multi-choice events
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CustomEnum {
     options: Vec<String>,
     selected: usize,
