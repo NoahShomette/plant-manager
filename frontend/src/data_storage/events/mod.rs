@@ -14,9 +14,11 @@ use reactive_stores::Store;
 use serde::{Deserialize, Serialize};
 use shared::events::{EventDataKind, EventType};
 
-use crate::FrontEndState;
+use crate::{data_storage::events::event_storage::EventInstanceStorageComponent, FrontEndState};
 
 use leptos::prelude::*;
+
+pub mod event_storage;
 
 #[component]
 pub fn EventStorageComponent(children: Children) -> impl IntoView {
@@ -63,10 +65,7 @@ pub fn EventStorageComponent(children: Children) -> impl IntoView {
         Duration::from_secs(60),
     );
 
-    view! {
-        {move || format!("{:?}", plant_list_context.get_event_list.get())}
-        {children()}
-    }
+    view! { <EventInstanceStorageComponent>{children()}</EventInstanceStorageComponent> }
 }
 
 #[derive(Clone, PartialEq)]

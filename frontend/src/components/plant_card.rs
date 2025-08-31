@@ -17,7 +17,7 @@ pub fn PlantCard(plant_id: Uuid) -> impl IntoView {
 
     view! {
         <a href=format!("/plant/{}/view", plant_id.to_string())>
-            <div class="bg-(--card) p-3 rounded-(--radius) w-[300px] hover:scale-105 transition duration-150">
+            <div class="bg-(--card) hover:bg-(--accent) p-3 rounded-(--radius) w-[300px] hover:scale-105 transition duration-150">
                 <h2 class="text-(--foreground) p-3 text-lg font-bold tracking-wide">
                     {plant_name}
                 </h2>

@@ -1,12 +1,6 @@
-use axum::{
-    body::Body,
-    extract::{RawPathParams, State},
-    http::StatusCode,
-    response::Response,
-};
-use chrono::{DateTime, Utc};
+use axum::{body::Body, extract::State, http::StatusCode, response::Response};
 use serde::{Deserialize, Serialize};
-use shared::events::{events_http::NewEvent, EventDataKind, EventType};
+use shared::events::{events_http::NewEvent, EventDataKind};
 use sqlx::{prelude::FromRow, types::Json, PgPool};
 use uuid::Uuid;
 
@@ -44,12 +38,12 @@ pub async fn new_event(
             .unwrap();
     };
 
-    let result = match sqlx::query("INSERT INTO plant_events(id, event_type_id, plant_id, data, date_created) VALUES ($1, $2, $3, $4, $5)")
+    let result = match sqlx::query("INSERT INTO plant_events(id, event_type_id, plant_id, data, event_date) VALUES ($1, $2, $3, $4, $5)")
     .bind(Uuid::new_v4())
     .bind(new_event.event_type)
     .bind(new_event.plant_id)
     .bind(Json(new_event.event_data))
-    .bind(Utc::now().naive_utc())
+    .bind(new_event.event_date)
     .execute(&pool)
     .await
         {

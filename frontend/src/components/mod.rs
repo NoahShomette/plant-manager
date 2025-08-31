@@ -12,3 +12,5 @@ pub mod new_plant;
 ///
 /// It does include options for quick actions for certain functions like marking plant as watered or uploading a new image
 pub mod plant_card;
+/// Module for plant related components
+pub mod plant_components;

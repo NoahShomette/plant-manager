@@ -12,6 +12,7 @@ use thaw::{Button, Input};
 use uuid::Uuid;
 
 use crate::{
+    components::plant_components::single_event::EventTypeComponent,
     data_storage::{events::EventListContext, plants::PlantStorageContext},
     FrontEndState,
 };
@@ -34,7 +35,7 @@ pub fn PlantPage() -> impl IntoView {
     let click = Action::new_local(|input: &(RwSignal<String>, FrontEndState, Uuid)| {
         modify_name(input.0.get(), input.1.clone(), input.2)
     });
-    let event_storage_context: PlantStorageContext = expect_context::<PlantStorageContext>();
+    let plant_storage_context: PlantStorageContext = expect_context::<PlantStorageContext>();
     let event_list: EventListContext = expect_context::<EventListContext>();
 
     let mut is_requesting = false;
@@ -55,7 +56,7 @@ pub fn PlantPage() -> impl IntoView {
             }} <div>
                 <h2 class="text-(--secondary) p-4 text-5xl font-extrabold tracking-wide italic">
                     {move || {
-                        let plant = event_storage_context.get_plant_storage.get();
+                        let plant = plant_storage_context.get_plant_storage.get();
                         plant
                             .plants
                             .get(&plant_id)
@@ -68,7 +69,7 @@ pub fn PlantPage() -> impl IntoView {
                 <div>
                     <Input value placeholder="Update Name" />
                     <Button on_click=move |_| {
-                        let plant = event_storage_context.get_plant_storage.get();
+                        let plant = plant_storage_context.get_plant_storage.get();
                         click.dispatch((value, reqwest_client.get(), plant_id));
                     }>"Update"</Button>
                 </div>
@@ -76,8 +77,13 @@ pub fn PlantPage() -> impl IntoView {
                     <For
                         each=move || event_list.get_event_list.get().0.clone()
                         key=|item| item.id
-                        children=|event_type| {
-                            view! { <p>{event_type.name}</p> }
+                        children= move |event_type| {
+                            view! {
+                                <EventTypeComponent
+                                    event_id=event_type.id
+                                    plant_id=plant_id
+                                />
+                            }
                         }
                     />
                 </div>
