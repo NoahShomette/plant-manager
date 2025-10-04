@@ -17,3 +17,4 @@ sqlx = { version = "0.8", features = [
     "uuid",
     "json",
 ], optional = true }
+serde_json = "1"

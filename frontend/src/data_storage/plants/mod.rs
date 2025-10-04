@@ -3,21 +3,16 @@
 use std::collections::HashMap;
 
 use leptos::{
-    prelude::{Signal, Write, WriteSignal},
+    prelude::{Write, WriteSignal},
     reactive::spawn_local,
-    server::codee::string::JsonSerdeCodec,
 };
 
-use leptos_use::storage::use_local_storage;
 use reactive_stores::Store;
 use serde::{Deserialize, Serialize};
 use shared::plant::{Plant, PlantDemographic};
 use uuid::Uuid;
 
-use crate::{
-    data_storage::plants::list::{PlantList, PlantListComponent},
-    FrontEndState,
-};
+use crate::{data_storage::plants::list::PlantListComponent, FrontEndState};
 
 use leptos::prelude::*;
 
@@ -26,7 +21,7 @@ pub mod plants;
 
 #[component]
 pub fn PlantStorageComponent(children: Children) -> impl IntoView {
-    let (state, set_state, _) = use_local_storage::<PlantStorage, JsonSerdeCodec>("my-plants");
+    let (state, set_state) = signal(PlantStorage::default());
 
     provide_context(PlantStorageContext {
         get_plant_storage: state,
@@ -40,7 +35,7 @@ pub fn PlantStorageComponent(children: Children) -> impl IntoView {
 
 #[derive(Clone, PartialEq)]
 pub struct PlantStorageContext {
-    pub get_plant_storage: Signal<PlantStorage>,
+    pub get_plant_storage: ReadSignal<PlantStorage>,
     pub write_plant_storage: WriteSignal<PlantStorage>,
 }
 

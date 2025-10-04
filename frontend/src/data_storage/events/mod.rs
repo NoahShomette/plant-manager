@@ -12,9 +12,15 @@ use leptos::{
 use leptos_use::storage::use_local_storage;
 use reactive_stores::Store;
 use serde::{Deserialize, Serialize};
-use shared::events::{EventDataKind, EventType};
+use shared::events::{events_http::NewEvent, EventData, EventDataKind, EventInstance, EventType};
+use uuid::Uuid;
 
-use crate::{data_storage::events::event_storage::EventInstanceStorageComponent, FrontEndState};
+use crate::{
+    data_storage::events::event_storage::{
+        EventInstanceStorageComponent, EventStorageContext, PlantEvents,
+    },
+    FrontEndState,
+};
 
 use leptos::prelude::*;
 
@@ -22,14 +28,14 @@ pub mod event_storage;
 
 #[component]
 pub fn EventStorageComponent(children: Children) -> impl IntoView {
-    let (pv, pv_set, _) = use_local_storage::<LastRequest, JsonSerdeCodec>("event-request");
+    let (pv, pv_set) = signal(LastRequest::default());
 
     provide_context(LastRequestContext {
         get: pv,
         write: pv_set,
     });
-    let (pl_state, pl_set_state, _) =
-        use_local_storage::<EventTypeList, JsonSerdeCodec>("event-list");
+
+    let (pl_state, pl_set_state) = signal(EventTypeList::default());
 
     provide_context(EventListContext {
         get_event_list: pl_state,
@@ -41,11 +47,10 @@ pub fn EventStorageComponent(children: Children) -> impl IntoView {
     let pv_context: LastRequestContext = expect_context::<LastRequestContext>();
 
     Effect::new(move |_| {
-        spawn_local(get_event_list(
+        spawn_local(get_event_type_list(
             reqwest_client.get_untracked(),
             pv_context.get.get_untracked(),
             pv_context.write,
-            plant_list_context.get_event_list,
             plant_list_context.write_plant_list,
         ))
     });
@@ -53,11 +58,10 @@ pub fn EventStorageComponent(children: Children) -> impl IntoView {
     set_interval(
         move || {
             Effect::new(move |_| {
-                spawn_local(get_event_list(
+                spawn_local(get_event_type_list(
                     reqwest_client.get_untracked(),
                     pv_context.get.get_untracked(),
                     pv_context.write,
-                    plant_list_context.get_event_list,
                     plant_list_context.write_plant_list,
                 ))
             });
@@ -70,7 +74,7 @@ pub fn EventStorageComponent(children: Children) -> impl IntoView {
 
 #[derive(Clone, PartialEq)]
 pub struct EventListContext {
-    pub get_event_list: Signal<EventTypeList>,
+    pub get_event_list: ReadSignal<EventTypeList>,
     pub write_plant_list: WriteSignal<EventTypeList>,
 }
 
@@ -80,7 +84,7 @@ pub struct EventTypeList(pub Vec<EventType>);
 
 #[derive(Clone, PartialEq)]
 pub struct LastRequestContext {
-    pub get: Signal<LastRequest>,
+    pub get: ReadSignal<LastRequest>,
     pub write: WriteSignal<LastRequest>,
 }
 
@@ -94,11 +98,10 @@ impl Default for LastRequest {
     }
 }
 
-async fn get_event_list(
+async fn get_event_type_list(
     reqwest_client: FrontEndState,
     last_requested: LastRequest,
     last_requested_write: WriteSignal<LastRequest>,
-    plant_list: Signal<EventTypeList>,
     plant_list_write: WriteSignal<EventTypeList>,
 ) {
     let Some(response) = reqwest_client
@@ -134,4 +137,46 @@ async fn get_event_list(
     // TODO: Queue a resync of the PlantStorage now. If we've deleted plants then we want to remove them asap and if we've spawned new plants then we want to pull their demographics if we dont have that already
     plant_list_write.write().0 = response;
     last_requested_write.write().0 = Utc::now().naive_utc();
+}
+
+pub fn new_event_action() -> Action<(NewEvent, FrontEndState, EventStorageContext), ()> {
+    Action::new_local(|input: &(NewEvent, FrontEndState, EventStorageContext)| {
+        new_event(input.2.clone(), input.1.clone(), input.0.clone())
+    })
+}
+
+async fn new_event(
+    event_storage: EventStorageContext,
+    reqwest_client: FrontEndState,
+    new_event: NewEvent,
+) {
+    let Some(response) = reqwest_client
+        .client
+        .post(format!("http://localhost:8080/events/new"))
+        .json(&new_event)
+        .send()
+        .await
+        .map_err(|e| log::error!("{e}"))
+        .ok()
+    else {
+        return;
+    };
+    let Some(body_text) = response.text().await.ok() else {
+        return;
+    };
+
+    let Ok(response) = serde_json::de::from_str::<EventInstance>(&body_text) else {
+        //TODO: Background Error message logging
+        return;
+    };
+
+    let mut write = event_storage.write_event_storage.write();
+
+    write
+        .plants_index
+        .entry(new_event.plant_id)
+        .and_modify(|entry| {
+            entry.add_new_events(vec![response.clone()]);
+        })
+        .or_insert(PlantEvents::new_from_events(vec![response.clone()]));
 }

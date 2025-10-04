@@ -79,6 +79,7 @@ async fn submit_new_plant(
         .json(&NewPlant {
             name: plant_name,
             timestamp: Utc::now().naive_utc().and_utc().timestamp(),
+            starting_events: vec![],
         })
         .send()
         .await

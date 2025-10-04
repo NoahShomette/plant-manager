@@ -19,7 +19,7 @@ use shared::plant::{
 use uuid::Uuid;
 
 use crate::{
-    data_storage::plants::{request_plant_demographic, PlantStorageContext, PlantStorage},
+    data_storage::plants::{request_plant_demographic, PlantStorage, PlantStorageContext},
     FrontEndState,
 };
 
@@ -27,13 +27,13 @@ use leptos::prelude::*;
 
 #[component]
 pub fn PlantListComponent(children: Children) -> impl IntoView {
-    let (pv, pv_set, _) =
-        use_local_storage::<LastDemographicRequest, JsonSerdeCodec>("plant-list-request");
+    let (pv, pv_set) = signal(LastDemographicRequest::default());
+
     provide_context(LastDemographicRequestContext {
         get: pv,
         write: pv_set,
     });
-    let (pl_state, pl_set_state, _) = use_local_storage::<PlantList, JsonSerdeCodec>("plant-list");
+    let (pl_state, pl_set_state) = signal(PlantList::default());
 
     provide_context(PlantListContext {
         get_plant_list: pl_state,
@@ -45,6 +45,17 @@ pub fn PlantListComponent(children: Children) -> impl IntoView {
     let plant_storage_context: PlantStorageContext = expect_context::<PlantStorageContext>();
     let pv_context: LastDemographicRequestContext =
         expect_context::<LastDemographicRequestContext>();
+    Effect::new(move |_| {
+        spawn_local(get_plant_list(
+            reqwest_client.get_untracked(),
+            pv_context.get.get_untracked(),
+            pv_context.write,
+            plant_list_context.get_plant_list,
+            plant_list_context.write_plant_list,
+            plant_storage_context.write_plant_storage,
+        ))
+    });
+
     Effect::new(move |_| {
         spawn_local(get_plant_list(
             reqwest_client.get_untracked(),
@@ -77,7 +88,7 @@ pub fn PlantListComponent(children: Children) -> impl IntoView {
 
 #[derive(Clone, PartialEq)]
 pub struct PlantListContext {
-    pub get_plant_list: Signal<PlantList>,
+    pub get_plant_list: ReadSignal<PlantList>,
     pub write_plant_list: WriteSignal<PlantList>,
 }
 
@@ -87,7 +98,7 @@ pub struct PlantList(pub Vec<Uuid>);
 
 #[derive(Clone, PartialEq)]
 pub struct LastDemographicRequestContext {
-    pub get: Signal<LastDemographicRequest>,
+    pub get: ReadSignal<LastDemographicRequest>,
     pub write: WriteSignal<LastDemographicRequest>,
 }
 
@@ -105,7 +116,7 @@ async fn get_plant_list(
     reqwest_client: FrontEndState,
     last_requested: LastDemographicRequest,
     last_requested_write: WriteSignal<LastDemographicRequest>,
-    plant_list: Signal<PlantList>,
+    plant_list: ReadSignal<PlantList>,
     plant_list_write: WriteSignal<PlantList>,
     write_plant_storage: WriteSignal<PlantStorage>,
 ) {
@@ -162,7 +173,7 @@ async fn get_plant_list(
         // We will need to include some type of intentionally deleted list so that we dont mess up this list
     }
 
-    for changed_plants in response.changed_plants.iter() {
+    for changed_plants in response.events_modified.iter() {
         // refresh basic demographic data? idk exactly
         spawn_local(request_plant_demographic(
             *changed_plants,

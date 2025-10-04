@@ -7,20 +7,20 @@ use axum::{
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use shared::{
+    events::{events_http::GetEventType, CustomEnum, EventData, PLANT_NAME_EVENT_ID, PLANT_STATE_ID},
     plant::{Plant, PlantDemographic, PlantState},
-    InfallibleHistoryItem,
 };
 use sqlx::{prelude::FromRow, types::Json, PgPool};
-use uuid::Uuid;
+use uuid::{uuid, Uuid};
+
+use crate::app::events::{get_event_custom, get_last_event};
 
 /// Struct which represents an entire plant
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct PlantDatabase {
-    pub name: Json<InfallibleHistoryItem<String>>,
     pub id: Uuid,
     pub date_created: NaiveDateTime,
-    pub last_modified: NaiveDateTime,
-    pub state: Json<InfallibleHistoryItem<PlantState>>,
+    pub event_modified: NaiveDateTime,
 }
 
 pub async fn request_plant_demographic(
@@ -37,7 +37,7 @@ pub async fn request_plant_demographic(
         }
     };
     let result: PlantDatabase = match sqlx::query_as(&format!(
-        "SELECT id, name, state, date_created, last_modified FROM plants where id ='{}'",
+        "SELECT id, date_created, event_modified FROM plants where id ='{}'",
         plant_id
     ))
     .fetch_one(&pool)
@@ -52,14 +52,63 @@ pub async fn request_plant_demographic(
         }
     };
 
-    println!("New Plant Registered: {:?}", result);
-    let plant: PlantDemographic = Plant {
-        id: result.id,
-        name: result.name.0,
-        plant_state: result.state.0,
-        date_created: result.date_created,
-        last_modified: result.last_modified,
-    }
-    .into();
+    let name_event = match get_last_event(uuid!(PLANT_NAME_EVENT_ID), plant_id, pool.clone()).await {
+        Ok(ok) => ok,
+        Err(err) => {
+            return Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(Body::from(err.to_string()))
+                .unwrap()
+        }
+    };
+    let state_event = match get_last_event(uuid!(PLANT_STATE_ID), plant_id, pool).await {
+        Ok(ok) => ok,
+        Err(err) => {
+            return Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(Body::from(err.to_string()))
+                .unwrap()
+        }
+    };
+
+    let name = match name_event {
+        Some(event) => {
+            let EventData::String(name) = event.data else {
+                return Response::builder()
+                    .status(StatusCode::INTERNAL_SERVER_ERROR)
+                    .body(Body::from(
+                        "Name Event Instance is the wrong type".to_string(),
+                    ))
+                    .unwrap();
+            };
+            Some(name)
+        }
+        None => None,
+    };
+
+    let state = match state_event {
+        Some(event) => {
+            let EventData::CustomEnum(state) = event.data else {
+                return Response::builder()
+                    .status(StatusCode::INTERNAL_SERVER_ERROR)
+                    .body(Body::from(
+                        "Name Event Instance is the wrong type".to_string(),
+                    ))
+                    .unwrap();
+            };
+            state
+        }
+        None => CustomEnum::plant_state(),
+    };
+
+    let plant: PlantDemographic = PlantDemographic::from_plant(
+        Plant {
+            id: result.id,
+            date_created: result.date_created,
+            event_modified: result.event_modified,
+        },
+        name,
+        state,
+    );
     Response::new(serde_json::ser::to_string(&plant).unwrap().into())
 }

@@ -1,1 +1,1 @@
-pub mod single_event;
+pub mod event;

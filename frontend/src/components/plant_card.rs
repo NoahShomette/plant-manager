@@ -1,25 +1,37 @@
 use leptos::prelude::*;
+use shared::events::{
+    events_http::{GetEvent, GetEventType},
+    PLANT_NAME_EVENT_ID,
+};
 use uuid::Uuid;
 
-use crate::data_storage::plants::PlantStorageContext;
+use crate::data_storage::{
+    events::event_storage::request_events_resource, plants::PlantStorageContext,
+};
 
 #[component]
 pub fn PlantCard(plant_id: Uuid) -> impl IntoView {
-    let plant_storage_context: PlantStorageContext = expect_context::<PlantStorageContext>();
-    let plant = plant_storage_context.get_plant_storage.get();
-    let plant = plant
-        .plants
-        .get(&plant_id)
-        .expect("Plant not found in storage")
-        .clone();
-
-    let plant_name = plant.0.name.clone();
+    let request_events_resource = request_events_resource(GetEvent {
+        event_type: Uuid::parse_str(PLANT_NAME_EVENT_ID).expect("Invalid UUID"),
+        plant_id: plant_id,
+        request_details: GetEventType::LastNth(1),
+    });
 
     view! {
         <a href=format!("/plant/{}/view", plant_id.to_string())>
-            <div class="bg-(--card) hover:bg-(--accent) p-3 rounded-(--radius) w-[300px] hover:scale-105 transition duration-150">
+            <div class="bg-(--card) hover:bg-(--accent) p-3 rounded-(--radius) w-[150px] hover:scale-105 transition duration-150">
                 <h2 class="text-(--foreground) p-3 text-lg font-bold tracking-wide">
-                    {plant_name}
+                    <Suspense fallback=move || {
+                        view! { <p>"Loading..."</p> }
+                    }>
+                        {move || Suspend::new(async move {
+                            let data = request_events_resource.await;
+                            view! {
+                                {data.iter().next().unwrap().data.expect_kind_string().unwrap()}
+                            }
+                        })}
+                    </Suspense>
+
                 </h2>
             </div>
         </a>

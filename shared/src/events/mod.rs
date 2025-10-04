@@ -4,23 +4,61 @@ use uuid::Uuid;
 
 pub mod events_http;
 
+pub static PLANT_STATE_ID: &str = "1a5c53bb-18c2-4789-8ba4-9bbfc4bc2371";
+pub static PLANT_NAME_EVENT_ID: &str = "a501afa2-1959-4f1e-9706-abe97eb85263";
+pub static BIRTHDAY_NAME_ID: &str = "700866fd-a8b8-4cef-af5b-1752a1434129";
+pub static REPOTTED_NAME_ID: &str = "1e7c1c14-dddd-4658-be0a-5c20726b4d16";
+pub static WATERED_NAME_ID: &str = "9c8c6cfc-e111-44c2-9b5c-f5d84ae2da7a";
+
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 pub struct EventType {
     pub id: Uuid,
     pub name: String,
     pub kind: EventDataKind,
+    /// Is this event type deletable by the user
+    pub deletable: bool,
+    /// Is this even type modifiable by the user
+    pub modifiable: bool,
+    /// Is this event type unique - there can be only one event type
+    pub is_unique: bool,
 }
 
 impl EventType {
-    pub fn new(name: String, kind: EventDataKind) -> EventType {
+    pub fn new(
+        name: String,
+        kind: EventDataKind,
+        deletable: bool,
+        modifiable: bool,
+        unique: bool,
+    ) -> EventType {
         EventType {
             name,
             kind,
             id: Uuid::new_v4(),
+            deletable,
+            modifiable,
+            is_unique: unique,
         }
     }
+
+    pub fn table_name(&self) -> &str {
+        match self.is_unique {
+            true => "events_unique",
+            false => "events",
+        }
+    }
+
     pub fn get(&self) -> &EventDataKind {
         &self.kind
+    }
+    pub fn modifiable(&self) -> bool {
+        self.modifiable
+    }
+    pub fn is_unique(&self) -> bool {
+        self.is_unique
+    }
+    pub fn deletable(&self) -> bool {
+        self.deletable
     }
 }
 
@@ -58,7 +96,7 @@ pub enum EventDataKind {
     DateTime,
     /// A time period between two dates
     Period,
-    CustomEnum,
+    CustomEnum(CustomEnum),
     Number,
     String,
 }
@@ -93,9 +131,16 @@ impl EventData {
         return match self {
             EventData::DateTime => event_data_kind == EventDataKind::DateTime,
             EventData::Period(_) => event_data_kind == EventDataKind::Period,
-            EventData::CustomEnum(_) => event_data_kind == EventDataKind::CustomEnum,
             EventData::Number(_) => event_data_kind == EventDataKind::Number,
             EventData::String(_) => event_data_kind == EventDataKind::String,
+            _ => true,
+        };
+    }
+
+    pub fn expect_kind_string(&self) -> Option<String> {
+        return match self {
+            EventData::String(string) => Some(string.clone()),
+            _ => None,
         };
     }
 }
@@ -107,20 +152,31 @@ pub enum Period {
 }
 
 /// A custom enum, enables user defined multi-choice events
-#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 pub struct CustomEnum {
     options: Vec<String>,
     selected: usize,
 }
 
 impl CustomEnum {
+    pub fn plant_state() -> CustomEnum {
+        CustomEnum {
+            options: vec![
+                "Alive".to_string(),
+                "Retired".to_string(),
+                "Gifted".to_string(),
+            ],
+            selected: 0,
+        }
+    }
+
     /// Create a new custom enum based on the given options
-    pub fn new(options: Vec<String>) -> Option<CustomEnum> {
+    pub fn new(options: Vec<&str>) -> Option<CustomEnum> {
         if options.len() == 0 {
             return None;
         }
         Some(Self {
-            options,
+            options: options.iter().map(|e| e.to_string()).collect(),
             selected: 0,
         })
     }
@@ -130,6 +186,15 @@ impl CustomEnum {
         if self.options.len() >= index {
             self.selected = index;
         };
+    }
+
+    /// Select an option based on string matching the options
+    pub fn select_by_string(&mut self, string: String) {
+        for (index, option) in self.options.iter().enumerate() {
+            if option == &string {
+                self.selected = index;
+            }
+        }
     }
 
     /// Returns the list of options

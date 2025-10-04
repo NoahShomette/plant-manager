@@ -2,12 +2,13 @@ use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::plant::PlantState;
+use crate::{events::events_http::NewEvent, plant::PlantState};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NewPlant {
     pub name: String,
     pub timestamp: i64,
+    pub starting_events: Vec<NewEvent>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -31,7 +32,7 @@ pub struct VerifyClientPlantListResponse {
     /// Plants that the client has but the server doesn't and therefore should be deleted (TODO: prior to deleting pop up a modal asking the client if they want to delete them)
     pub deleted_plants: Vec<Uuid>,
     /// Plants that the server has that have changed since the last time the client requested plant verification (Not entirely sure we will use this yet but it could be helpful)
-    pub changed_plants: Vec<Uuid>,
+    pub events_modified: Vec<Uuid>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
