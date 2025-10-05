@@ -46,67 +46,82 @@ pub fn PlantPage() -> impl IntoView {
         request_details: GetEventType::LastNth(1),
     });
 
-    let value = RwSignal::new("...".to_string());
+    let canonical_name = RwSignal::new("...".to_string());
+    let new_name = RwSignal::new(canonical_name.get_untracked());
 
     let num_events = RwSignal::new(3);
 
-    let (edit_name, set_edit_name) = signal(false);
+    let name_input_ref = NodeRef::new();
 
     view! {
         {move || {
             if let Some(data) = request_events_resource.get() {
-                *value.write() = data.iter().next().unwrap().data.expect_kind_string().unwrap();
+                *canonical_name.write() = data
+                    .iter()
+                    .next()
+                    .unwrap()
+                    .data
+                    .expect_kind_string()
+                    .unwrap();
+                *new_name.write() = canonical_name.get();
             }
         }}
         <div>
             <div>
                 <div class="flex flex-row items-center">
-                    <Button
-                        class="aspect-square p-4 flex-none"
-                        size=ButtonSize::Medium
-                        icon=icondata::FiEdit
-                        on_click=move |_| {
-                            *set_edit_name.write() = !edit_name.get();
-                        }
-                    ></Button>
-                    <Show
-                        when=move || edit_name.get()
-                        fallback=move || {
-                            view! {
-                                <h2 class="text-(--secondary) p-4 text-5xl font-extrabold tracking-wide italic">
-                                    {move || {
-                                        match request_events_resource.get() {
-                                            Some(data) => {
-                                                data.iter()
-                                                    .next()
-                                                    .unwrap()
-                                                    .data
-                                                    .expect_kind_string()
-                                                    .unwrap()
-                                            }
-                                            None => "Loading...".to_string(),
+                    {
+                        view! {
+                            <input
+                                node_ref=name_input_ref
+                                type="text"
+                                class="text-(--secondary) p-4 text-5xl font-extrabold tracking-wide italic"
+                                bind:value=new_name
+                                on:blur=move |_| {
+                                    if new_name.get() == canonical_name.get() {
+                                        return;
+                                    }
+                                    new_event_click
+                                        .dispatch((
+                                            NewEvent {
+                                                event_type: Uuid::parse_str(PLANT_NAME_EVENT_ID)
+                                                    .expect("Invalid UUID"),
+                                                plant_id,
+                                                event_data: shared::events::EventData::String(
+                                                    new_name.get(),
+                                                ),
+                                                event_date: Utc::now().naive_utc(),
+                                            },
+                                            reqwest_client.get(),
+                                            event_storage_context,
+                                        ));
+                                }
+                                on:keyup=move |event| {
+                                    if new_name.get() == canonical_name.get() {
+                                        return;
+                                    }
+                                    if event.key() == "Enter" {
+                                        new_event_click
+                                            .dispatch((
+                                                NewEvent {
+                                                    event_type: Uuid::parse_str(PLANT_NAME_EVENT_ID)
+                                                        .expect("Invalid UUID"),
+                                                    plant_id,
+                                                    event_data: shared::events::EventData::String(
+                                                        new_name.get(),
+                                                    ),
+                                                    event_date: Utc::now().naive_utc(),
+                                                },
+                                                reqwest_client.get(),
+                                                event_storage_context,
+                                            ));
+                                        if let Some(input) = name_input_ref.get() {
+                                            let _ = input.blur();
                                         }
-                                    }}
-                                </h2>
-                            }
+                                    }
+                                }
+                            />
                         }
-                    >
-                        <Input value placeholder="Update Name" />
-                        <Button on_click=move |_| {
-                            new_event_click
-                                .dispatch((
-                                    NewEvent {
-                                        event_type: Uuid::parse_str(PLANT_NAME_EVENT_ID)
-                                            .expect("Invalid UUID"),
-                                        plant_id,
-                                        event_data: shared::events::EventData::String(value.get()),
-                                        event_date: Utc::now().naive_utc(),
-                                    },
-                                    reqwest_client.get(),
-                                    event_storage_context,
-                                ));
-                        }>"Update"</Button>
-                    </Show>
+                    }
 
                 </div>
                 <div>

@@ -54,16 +54,16 @@ pub async fn new_event(
             ))
             .unwrap();
     };
-
-    let table_name = match event_type.is_unique {
-        true => "events_unique",
-        false => "events",
+    
+    let query_string = match event_type.is_unique {
+        true => format!(
+            r#"INSERT INTO events_unique(id, event_type_id, plant_id, data, event_date) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (event_type_id, plant_id) DO UPDATE SET event_date = EXCLUDED.event_date, data = EXCLUDED.data RETURNING *"#
+        ),
+        false => format!(
+            r#"INSERT INTO events(id, event_type_id, plant_id, data, event_date) VALUES ($1, $2, $3, $4, $5) RETURNING *"#
+        ),
     };
 
-    let query_string = format!(
-        r#"INSERT INTO {}(id, event_type_id, plant_id, data, event_date) VALUES ($1, $2, $3, $4, $5) RETURNING *"#,
-        table_name
-    );
     let result: EventInstanceRow = match sqlx::query_as(&query_string)
         .bind(Uuid::new_v4())
         .bind(new_event.event_type)
