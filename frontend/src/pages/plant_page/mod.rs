@@ -2,25 +2,32 @@
 //!
 //! Includes Timeline and Edit views
 
-use chrono::Utc;
-use leptos::prelude::*;
+use std::io::Cursor;
+
+use chrono::{DateTime, Local, NaiveDateTime, Utc};
+use leptos::{prelude::*, reactive::spawn_local};
 use leptos_router::hooks::use_params_map;
 use reactive_stores::Store;
-use shared::events::{
-    events_http::{GetEvent, GetEventType, NewEvent},
-    PLANT_NAME_EVENT_ID, PLANT_STATE_ID,
+use shared::{
+    events::{
+        events_http::{GetEvent, GetEventType, NewEvent},
+        EventInstance, PHOTO_EVENT_TYPE_ID, PLANT_NAME_EVENT_ID, PLANT_STATE_ID,
+    },
+    photos::NewPhoto,
 };
 
 use thaw::{
     Button, ButtonAppearance, ButtonSize, Dialog, DialogActions, DialogBody, DialogContent,
-    DialogSurface, DialogTitle, Input,
+    DialogSurface, DialogTitle, FileList, Input, Upload,
 };
 use uuid::Uuid;
+use wasm_bindgen_futures::JsFuture;
+use web_sys::js_sys::Uint8Array;
 
 use crate::{
-    components::plant_components::event::{EventEditComponent, EventViewComponent},
+    components::plant_components::{event::{EventEditComponent, EventViewComponent}, photo::PhotoDisplayComponent},
     data_storage::events::{
-        event_storage::{request_events_resource, EventStorageContext},
+        event_storage::{request_events_resource, EventStorageContext, PlantEvents},
         new_event_action, EventListContext,
     },
     FrontEndState,
@@ -40,10 +47,17 @@ pub fn PlantPage() -> impl IntoView {
 
     let new_event_click = new_event_action();
     let event_list: EventListContext = expect_context::<EventListContext>();
-    let request_events_resource = request_events_resource(GetEvent {
+
+    let request_names = request_events_resource(GetEvent {
         event_type: Uuid::parse_str(PLANT_NAME_EVENT_ID).expect("Invalid UUID"),
         plant_id: plant_id,
         request_details: GetEventType::LastNth(1),
+    });
+
+    let request_photos = request_events_resource(GetEvent {
+        event_type: Uuid::parse_str(PHOTO_EVENT_TYPE_ID).expect("Invalid UUID"),
+        plant_id: plant_id,
+        request_details: GetEventType::LastNth(3),
     });
 
     let canonical_name = RwSignal::new("...".to_string());
@@ -52,10 +66,15 @@ pub fn PlantPage() -> impl IntoView {
     let num_events = RwSignal::new(3);
 
     let name_input_ref = NodeRef::new();
+    let uploaded_image = RwSignal::new(None::<Vec<u8>>);
+
+    let custom_request =
+        move |file_list: FileList| spawn_local(submit_new_photos(file_list, uploaded_image));
+    let new_photo_action = new_photo_action();
 
     view! {
         {move || {
-            if let Some(data) = request_events_resource.get() {
+            if let Some(data) = request_names.get() {
                 *canonical_name.write() = data
                     .iter()
                     .next()
@@ -124,6 +143,43 @@ pub fn PlantPage() -> impl IntoView {
                     }
 
                 </div>
+
+                <div>
+                    <For
+                        each=move || {
+                            if let Some(data) = request_photos.get() { data } else { vec![] }
+                        }
+                        key=|item| item.id
+                        children=move |event_type| {
+                            view! {
+                                <PhotoDisplayComponent
+                                    photo_location={event_type.get().expect_kind_string().unwrap()}
+                                />
+                            }
+                        }
+                    />
+                    <Upload custom_request>
+                        <Button>"Select Photos"</Button>
+                    </Upload>
+                    <Button on_click=move |_| {
+
+                        let Some(uploaded_image) = uploaded_image.get_untracked() else {
+                            return;
+                        };
+
+                        new_photo_action
+                            .dispatch((
+                                NewPhoto {
+                                    plant_id,
+                                    timestamp: Local::now().naive_local().timestamp(),
+                                    photo_binary: uploaded_image,
+                                },
+                                reqwest_client.get(),
+                                event_storage_context,
+                            ));
+                    }>"Upload"</Button>
+                </div>
+
                 <div>
                     <For
                         each=move || {
@@ -131,6 +187,7 @@ pub fn PlantPage() -> impl IntoView {
                             list.retain(|item| {
                                 item.id != Uuid::parse_str(PLANT_NAME_EVENT_ID).unwrap()
                                     && item.id != Uuid::parse_str(PLANT_STATE_ID).unwrap()
+                                    && item.id != Uuid::parse_str(PHOTO_EVENT_TYPE_ID).unwrap()
                             });
                             list
                         }
@@ -148,6 +205,31 @@ pub fn PlantPage() -> impl IntoView {
                 </div>
             </div>
         </div>
+    }
+}
+
+async fn submit_new_photos(file_list: FileList, uploaded_image: RwSignal<Option<Vec<u8>>>) {
+    for file_index in 0..file_list.length() {
+        let Some(file) = file_list.get(file_index) else {
+            continue;
+        };
+
+        let Ok(file_binary) = JsFuture::from(file.array_buffer()).await else {
+            continue;
+        };
+        let array = Uint8Array::new(&file_binary);
+        let Ok(image) = image::load_from_memory(&array.to_vec()) else {
+            continue;
+        };
+        let mut buf: Vec<u8> = Vec::new();
+        image
+            .write_to(&mut Cursor::new(&mut buf), image::ImageFormat::Png)
+            .unwrap();
+
+        uploaded_image.set(Some(buf));
+        //let image = ImageReader::new(buffer.);
+
+        //ImageReader::new(file.stream());
     }
 }
 
@@ -262,4 +344,46 @@ fn EventDisplayComponent(
             }}
         </div>
     }
+}
+
+pub fn new_photo_action() -> Action<(NewPhoto, FrontEndState, EventStorageContext), ()> {
+    Action::new_local(|input: &(NewPhoto, FrontEndState, EventStorageContext)| {
+        new_photo(input.2.clone(), input.1.clone(), input.0.clone())
+    })
+}
+
+async fn new_photo(
+    event_storage: EventStorageContext,
+    reqwest_client: FrontEndState,
+    new_event: NewPhoto,
+) {
+    let Some(response) = reqwest_client
+        .client
+        .post(format!("http://localhost:8080/photos/new"))
+        .json(&new_event)
+        .send()
+        .await
+        .map_err(|e| log::error!("{e}"))
+        .ok()
+    else {
+        return;
+    };
+    let Some(body_text) = response.text().await.ok() else {
+        return;
+    };
+
+    let Ok(response) = serde_json::de::from_str::<EventInstance>(&body_text) else {
+        //TODO: Background Error message logging
+        return;
+    };
+
+    let mut write = event_storage.write_event_storage.write();
+
+    write
+        .plants_index
+        .entry(new_event.plant_id)
+        .and_modify(|entry| {
+            entry.add_new_events(vec![response.clone()]);
+        })
+        .or_insert(PlantEvents::new_from_events(vec![response.clone()]));
 }

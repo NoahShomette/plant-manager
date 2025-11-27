@@ -1,4 +1,5 @@
 mod events;
+mod photos;
 mod plants;
 
 use std::{convert::Infallible, sync::Arc};
@@ -12,6 +13,7 @@ use axum::{
 };
 pub use events::rout_event;
 use futures_util::{lock::Mutex, stream::Stream};
+pub use photos::route_photos;
 use shared::DirtyCache;
 use tokio::sync::mpsc::Receiver;
 

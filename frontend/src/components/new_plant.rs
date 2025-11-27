@@ -1,8 +1,13 @@
+use std::io::Cursor;
+
+use base64::Engine;
 use chrono::{Local, Utc};
 use leptos::{prelude::*, reactive::spawn_local};
 use reactive_stores::Store;
 use shared::plant::{plant_http::NewPlant, PlantDemographic};
 use thaw::{Button, DatePicker, FileList, Input, Label, Upload};
+use wasm_bindgen_futures::JsFuture;
+use web_sys::js_sys::Uint8Array;
 
 use crate::{
     data_storage::plants::{PlantStorage, PlantStorageContext},
@@ -12,6 +17,7 @@ use crate::{
 #[component]
 pub fn NewPlant() -> impl IntoView {
     let value = RwSignal::new("".to_string());
+
     let submit_response = RwSignal::new("Unknown".to_string());
     let reqwest_client: Store<FrontEndState> = expect_context::<Store<FrontEndState>>();
     let plant_storage_context: PlantStorageContext = expect_context::<PlantStorageContext>();
@@ -28,20 +34,8 @@ pub fn NewPlant() -> impl IntoView {
         ))
     };
 
+
     //let uploaded_images = RwSignal::new(Image)
-
-    let custom_request = move |file_list: FileList| {
-        let len = file_list.length();
-        for file_index in 0..file_list.length() {
-            let Some(file) = file_list.get(file_index) else {
-                break;
-            };
-
-            let buffer = file.stream();
-
-            //ImageReader::new(file.stream());
-        }
-    };
 
     view! {
         <div class="flex flex-col justify-center py-3 px-5">
@@ -50,15 +44,15 @@ pub fn NewPlant() -> impl IntoView {
                 <Label>{move || submit_response.get()}</Label>
             </div>
             <DatePicker value=date_value />
-            <Upload custom_request>
-                <Button>"upload"</Button>
-            </Upload>
+
             <Button on_click=click>"Create new Plant"</Button>
             <Label>{move || submit_response_2.get()}</Label>
 
         </div>
     }
 }
+
+
 
 async fn submit_new_plant(
     submit_response: RwSignal<String>,

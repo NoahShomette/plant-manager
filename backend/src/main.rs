@@ -20,7 +20,7 @@ mod app;
 mod static_support;
 use static_support::using_serve_dir;
 
-use crate::app::{dirty_cache_sse_handler, rout_event, rout_plant};
+use crate::app::{dirty_cache_sse_handler, rout_event, rout_plant, route_photos};
 
 // the application state
 #[derive(Clone)]
@@ -84,11 +84,13 @@ async fn main() {
         .merge(rout_main())
         .nest("/plants", rout_plant())
         .nest("/events", rout_event())
+        .nest("/photos", route_photos())
+        .merge(using_serve_dir())
         .route("/dirty-cache", get(dirty_cache_sse_handler))
         .with_state(state)
         .layer(CorsLayer::permissive());
 
-    let _ = tokio::join!(serve(using_serve_dir(), 3001), serve(app, 8080));
+    let _ = serve(app, 8080).await;
 }
 
 fn rout_main() -> Router<AppState> {

@@ -43,9 +43,17 @@ pub fn EventEditComponent(event_id: Uuid, plant_id: Uuid) -> impl IntoView {
 pub fn EventViewComponent(event: EventInstance) -> impl IntoView {
     // 3 initial states, we are still requesting data, we have received it and we have the data, we received it and we have no events
     match &event.data {
-        shared::events::EventData::DateTime => {
-            view! { {event.event_date.format("%A %B %d, %Y - %H:%M").to_string()} }.into_any()
+        shared::events::EventData::DateTime => view! {
+            <div class="flex flex-row items-center p-2">
+                <div class="flex flex-col justify-center p-1 mx-2">
+                    <div class="text-center">{event.event_date.format("%A").to_string()}</div>
+                    <div class="text-center">{event.event_date.format("%B %d").to_string()}</div>
+                </div>
+                <div class="text-center">{local_time_ago_humanized(event.event_date)}</div>
+
+            </div>
         }
+        .into_any(),
         shared::events::EventData::Period(period) => todo!(),
         shared::events::EventData::CustomEnum(custom_enum) => {
             view! { <p>{format!("{}", *custom_enum.selected().unwrap())}</p> }.into_any()
@@ -56,6 +64,32 @@ pub fn EventViewComponent(event: EventInstance) -> impl IntoView {
         shared::events::EventData::String(string) => {
             view! { <p>{format!("{}", string)}</p> }.into_any()
         }
+    }
+}
+
+pub fn local_time_ago_humanized(date: NaiveDateTime) -> String {
+    let now = Local::now().naive_local();
+    let duration = now.signed_duration_since(date.and_utc().naive_local());
+
+    match duration.num_days() {
+        0 => match duration.num_hours() {
+            0 => match duration.num_minutes() {
+                0 => format!("{} seconds ago", duration.num_seconds()),
+                _ => format!("{} minues ago", duration.num_minutes()),
+            },
+            _ => format!("{} hours ago", duration.num_hours()),
+        },
+        1 => format!("yesterday"),
+
+        2..=6 => format!("{} days ago", duration.num_days()),
+        7..=13 => "1 week ago".to_string(),
+        14..=20 => "2 weeks ago".to_string(),
+        21..=27 => "3 weeks ago".to_string(),
+        28..=30 => "1 month ago".to_string(),
+        31..=59 => format!("{} months ago", duration.num_days() / 30),
+        60..=364 => format!("{} months ago", duration.num_days() / 30),
+        365..=729 => "1 year ago".to_string(),
+        _ => format!("{} years ago", duration.num_days() / 365),
     }
 }
 

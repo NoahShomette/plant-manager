@@ -1,7 +1,4 @@
-use crate::app::{
-    events::{get_event_types_custom, new_event},
-    plants::get_demographic::request_plant_demographic,
-};
+use crate::app::{events::new_event, plants::get_demographic::request_plant_demographic};
 use axum::{
     body::Body,
     extract::{Path, State},

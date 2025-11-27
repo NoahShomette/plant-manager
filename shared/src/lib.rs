@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 pub mod events;
+pub mod photos;
 pub mod plant;
 
 #[derive(Serialize, Deserialize, Clone, PartialEq)]

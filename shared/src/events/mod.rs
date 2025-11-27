@@ -6,9 +6,10 @@ pub mod events_http;
 
 pub static PLANT_STATE_ID: &str = "1a5c53bb-18c2-4789-8ba4-9bbfc4bc2371";
 pub static PLANT_NAME_EVENT_ID: &str = "a501afa2-1959-4f1e-9706-abe97eb85263";
-pub static BIRTHDAY_NAME_ID: &str = "700866fd-a8b8-4cef-af5b-1752a1434129";
-pub static REPOTTED_NAME_ID: &str = "1e7c1c14-dddd-4658-be0a-5c20726b4d16";
-pub static WATERED_NAME_ID: &str = "9c8c6cfc-e111-44c2-9b5c-f5d84ae2da7a";
+pub static BIRTHDAY_EVENT_ID: &str = "700866fd-a8b8-4cef-af5b-1752a1434129";
+pub static REPOTTED_EVENT_ID: &str = "1e7c1c14-dddd-4658-be0a-5c20726b4d16";
+pub static WATERED_EVENT_ID: &str = "9c8c6cfc-e111-44c2-9b5c-f5d84ae2da7a";
+pub static PHOTO_EVENT_TYPE_ID: &str = "77271e34-e207-47cd-b360-f1db84db4f7e";
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 pub struct EventType {
@@ -67,6 +68,7 @@ impl EventType {
 /// It is part of the record of a plants care and life.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub struct EventInstance {
+    /// The id of this specific event instance. Used to uniquely identify this event and its data
     pub id: Uuid,
     pub event_type_id: Uuid,
     pub plant_id: Uuid,
