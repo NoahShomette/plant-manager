@@ -5,8 +5,8 @@ use shared::DirtyCache;
 use tokio::sync::broadcast;
 use tokio::sync::mpsc::{self, Sender};
 use tokio::time::sleep;
+use tokio::{fs, select, signal, spawn};
 use tokio::{net::TcpListener, sync::mpsc::Receiver};
-use tokio::{select, signal, spawn};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -55,6 +55,8 @@ async fn main() {
     tracing_subscriber::registry()
         .with(tracing_subscriber::fmt::layer())
         .init();
+
+    let _ = fs::create_dir_all("/assets");
 
     let db_connection_str = std::env::var("DATABASE_URL")
         .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/postgres".to_string());

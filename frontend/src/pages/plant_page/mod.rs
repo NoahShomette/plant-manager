@@ -4,7 +4,7 @@
 
 use std::io::Cursor;
 
-use chrono::{DateTime, Local, NaiveDateTime, Utc};
+use chrono::{Local, Utc};
 use leptos::{prelude::*, reactive::spawn_local};
 use leptos_router::hooks::use_params_map;
 use reactive_stores::Store;
@@ -17,15 +17,17 @@ use shared::{
 };
 
 use thaw::{
-    Button, ButtonAppearance, ButtonSize, Dialog, DialogActions, DialogBody, DialogContent,
-    DialogSurface, DialogTitle, FileList, Input, Upload,
+    Button, Dialog, DialogBody, DialogContent, DialogSurface, DialogTitle, FileList, Input, Upload,
 };
 use uuid::Uuid;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::js_sys::Uint8Array;
 
 use crate::{
-    components::plant_components::{event::{EventEditComponent, EventViewComponent}, photo::PhotoDisplayComponent},
+    components::plant_components::{
+        event::{EventEditComponent, EventViewComponent},
+        photo::PhotoDisplayComponent,
+    },
     data_storage::events::{
         event_storage::{request_events_resource, EventStorageContext, PlantEvents},
         new_event_action, EventListContext,
@@ -42,23 +44,32 @@ pub fn PlantPage() -> impl IntoView {
         Ok(id) => id,
         Err(_) => todo!(),
     };
+
+    let local_event_storage: RwSignal<PlantEvents> = RwSignal::new(PlantEvents::default());
+    provide_context(local_event_storage.write_only());
+
     let reqwest_client: Store<FrontEndState> = expect_context::<Store<FrontEndState>>();
-    let event_storage_context: EventStorageContext = expect_context::<EventStorageContext>();
 
     let new_event_click = new_event_action();
     let event_list: EventListContext = expect_context::<EventListContext>();
 
-    let request_names = request_events_resource(GetEvent {
-        event_type: Uuid::parse_str(PLANT_NAME_EVENT_ID).expect("Invalid UUID"),
-        plant_id: plant_id,
-        request_details: GetEventType::LastNth(1),
-    });
+    let request_names = request_events_resource(
+        GetEvent {
+            event_type: Uuid::parse_str(PLANT_NAME_EVENT_ID).expect("Invalid UUID"),
+            plant_id: plant_id,
+            request_details: GetEventType::LastNth(1),
+        },
+        local_event_storage,
+    );
 
-    let request_photos = request_events_resource(GetEvent {
-        event_type: Uuid::parse_str(PHOTO_EVENT_TYPE_ID).expect("Invalid UUID"),
-        plant_id: plant_id,
-        request_details: GetEventType::LastNth(3),
-    });
+    let request_photos = request_events_resource(
+        GetEvent {
+            event_type: Uuid::parse_str(PHOTO_EVENT_TYPE_ID).expect("Invalid UUID"),
+            plant_id: plant_id,
+            request_details: GetEventType::LastNth(3),
+        },
+        local_event_storage,
+    );
 
     let canonical_name = RwSignal::new("...".to_string());
     let new_name = RwSignal::new(canonical_name.get_untracked());
@@ -100,6 +111,7 @@ pub fn PlantPage() -> impl IntoView {
                                         return;
                                     }
                                     new_event_click
+                                        .clone()
                                         .dispatch((
                                             NewEvent {
                                                 event_type: Uuid::parse_str(PLANT_NAME_EVENT_ID)
@@ -111,7 +123,7 @@ pub fn PlantPage() -> impl IntoView {
                                                 event_date: Utc::now().naive_utc(),
                                             },
                                             reqwest_client.get(),
-                                            event_storage_context,
+                                            local_event_storage.write_only(),
                                         ));
                                 }
                                 on:keyup=move |event| {
@@ -120,6 +132,7 @@ pub fn PlantPage() -> impl IntoView {
                                     }
                                     if event.key() == "Enter" {
                                         new_event_click
+                                            .clone()
                                             .dispatch((
                                                 NewEvent {
                                                     event_type: Uuid::parse_str(PLANT_NAME_EVENT_ID)
@@ -131,7 +144,7 @@ pub fn PlantPage() -> impl IntoView {
                                                     event_date: Utc::now().naive_utc(),
                                                 },
                                                 reqwest_client.get(),
-                                                event_storage_context,
+                                                local_event_storage.write_only(),
                                             ));
                                         if let Some(input) = name_input_ref.get() {
                                             let _ = input.blur();
@@ -152,9 +165,10 @@ pub fn PlantPage() -> impl IntoView {
                         key=|item| item.id
                         children=move |event_type| {
                             view! {
-                                <PhotoDisplayComponent
-                                    photo_location={event_type.get().expect_kind_string().unwrap()}
-                                />
+                                <PhotoDisplayComponent photo_location=event_type
+                                    .get()
+                                    .expect_kind_string()
+                                    .unwrap() />
                             }
                         }
                     />
@@ -162,11 +176,9 @@ pub fn PlantPage() -> impl IntoView {
                         <Button>"Select Photos"</Button>
                     </Upload>
                     <Button on_click=move |_| {
-
                         let Some(uploaded_image) = uploaded_image.get_untracked() else {
                             return;
                         };
-
                         new_photo_action
                             .dispatch((
                                 NewPhoto {
@@ -175,7 +187,7 @@ pub fn PlantPage() -> impl IntoView {
                                     photo_binary: uploaded_image,
                                 },
                                 reqwest_client.get(),
-                                event_storage_context,
+                                local_event_storage.write_only(),
                             ));
                     }>"Upload"</Button>
                 </div>
@@ -198,6 +210,7 @@ pub fn PlantPage() -> impl IntoView {
                                     event_id=event_type.id
                                     plant_id=plant_id
                                     num_events=num_events
+                                    plant_events=local_event_storage
                                 />
                             }
                         }
@@ -239,6 +252,7 @@ fn EventDisplayComponent(
     event_id: Uuid,
     plant_id: Uuid,
     num_events: RwSignal<i32>,
+    plant_events: RwSignal<PlantEvents>,
 ) -> impl IntoView {
     let event_storage_context: EventListContext = expect_context::<EventListContext>();
     let events = event_storage_context.get_event_list.get_untracked();
@@ -249,29 +263,40 @@ fn EventDisplayComponent(
         .expect("Plant not found in storage")
         .clone();
 
-    let num_events = move || num_events.get();
-    let event_action = request_events_resource(GetEvent {
-        event_type: event_type.id,
-        plant_id: plant_id,
-        request_details: GetEventType::LastNth(num_events()),
-    });
-
+    let num_events = Memo::new(move |_| num_events.get());
+    let num_events_update = move || {
+        num_events.get();
+    };
+    let event_action = request_events_resource(
+        GetEvent {
+            event_type: event_type.id,
+            plant_id: plant_id,
+            request_details: GetEventType::LastNth(num_events.get_untracked()),
+        },
+        plant_events,
+    );
     let resource = move || event_action.get();
 
-    let events = event_storage_context.get_event_list.get();
-    let event_type = events
-        .0
-        .iter()
-        .find(|item| item.id == event_id)
-        .expect("Plant not found in storage")
-        .clone();
+    let event_name = RwSignal::new("".to_string());
 
-    let event_name = event_type.name.clone();
+    let events = move || {
+        let events = event_storage_context.get_event_list.get();
+        let event_type = events
+            .0
+            .iter()
+            .find(|item| item.id == event_id)
+            .expect("Plant not found in storage")
+            .clone();
+        event_name.set(event_type.name.clone());
+    };
+
     let open = RwSignal::new(false);
     view! {
+        {events}
+        {num_events_update}
         <div>
             <div class="flex flex-row">
-                <h3 class="text-(--secondary) p-4 text-lg font-bold">{event_name.clone()}</h3>
+                <h3 class="text-(--secondary) p-4 text-lg font-bold">{move || event_name.get()}</h3>
                 <Button on_click=move |_| open.set(true)>"New"</Button>
                 <Dialog open>
                     <DialogSurface>
@@ -280,7 +305,7 @@ fn EventDisplayComponent(
                                 {
                                     view! {
                                         <div class="flex justify-between">
-                                            <h2>{event_name}</h2>
+                                            <h2>{move || event_name.get()}</h2>
                                             <Button on_click=move |_| open.set(false)>"Close"</Button>
                                         </div>
                                     }
@@ -301,8 +326,6 @@ fn EventDisplayComponent(
                 Some(data) => {
                     match !data.is_empty() {
                         true => {
-                            let event_type = event_type.clone();
-
                             // We have succesfully requested the data
                             // We have events of this type
                             view! {
@@ -331,7 +354,6 @@ fn EventDisplayComponent(
                 }
                 None => {
                     // We havent added any events of this type
-
                     // We are still requesting the data
                     view! {
                         <div class="bg-(--card) p-2 rounded-(--radius) flex flex-col">
@@ -346,14 +368,16 @@ fn EventDisplayComponent(
     }
 }
 
-pub fn new_photo_action() -> Action<(NewPhoto, FrontEndState, EventStorageContext), ()> {
-    Action::new_local(|input: &(NewPhoto, FrontEndState, EventStorageContext)| {
-        new_photo(input.2.clone(), input.1.clone(), input.0.clone())
-    })
+pub fn new_photo_action() -> Action<(NewPhoto, FrontEndState, WriteSignal<PlantEvents>), ()> {
+    Action::new_local(
+        |input: &(NewPhoto, FrontEndState, WriteSignal<PlantEvents>)| {
+            new_photo(input.2.clone(), input.1.clone(), input.0.clone())
+        },
+    )
 }
 
 async fn new_photo(
-    event_storage: EventStorageContext,
+    event_storage: WriteSignal<PlantEvents>,
     reqwest_client: FrontEndState,
     new_event: NewPhoto,
 ) {
@@ -377,13 +401,7 @@ async fn new_photo(
         return;
     };
 
-    let mut write = event_storage.write_event_storage.write();
+    let mut write = event_storage.write();
 
-    write
-        .plants_index
-        .entry(new_event.plant_id)
-        .and_modify(|entry| {
-            entry.add_new_events(vec![response.clone()]);
-        })
-        .or_insert(PlantEvents::new_from_events(vec![response.clone()]));
+    write.add_new_events(vec![response.clone()]);
 }

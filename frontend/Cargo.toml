@@ -7,7 +7,7 @@ authors = ["Noah <noahshomette@gmail.com>"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-leptos = { version = "0.8", features = ["csr"] }
+leptos = { version = "0.8.14", features = ["csr"] }
 leptos_meta = { version = "0.8" }
 leptos_router = { version = "0.8" }
 leptos-use = { version = "0.16.3", features = ["use_event_source"] }
@@ -17,7 +17,7 @@ log = "0.4"
 console_error_panic_hook = "0.1"
 thaw = { version = "0.5.0-beta", features = ["csr"] }
 shared = { path = "../shared" }
-reactive_stores = "0.2.5"
+reactive_stores = "0.3.0"
 chrono = { version = "0.4.41" }
 uuid = { version = "1.18.0", features = ["v4", "serde"] }
 serde = { version = "1", features = ["derive"] }

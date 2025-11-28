@@ -139,14 +139,16 @@ async fn get_event_type_list(
     last_requested_write.write().0 = Utc::now().naive_utc();
 }
 
-pub fn new_event_action() -> Action<(NewEvent, FrontEndState, EventStorageContext), ()> {
-    Action::new_local(|input: &(NewEvent, FrontEndState, EventStorageContext)| {
-        new_event(input.2.clone(), input.1.clone(), input.0.clone())
-    })
+pub fn new_event_action() -> Action<(NewEvent, FrontEndState, WriteSignal<PlantEvents>), ()> {
+    Action::new_local(
+        |input: &(NewEvent, FrontEndState, WriteSignal<PlantEvents>)| {
+            new_event(input.2, input.1.clone(), input.0.clone())
+        },
+    )
 }
 
 async fn new_event(
-    event_storage: EventStorageContext,
+    event_storage: WriteSignal<PlantEvents>,
     reqwest_client: FrontEndState,
     new_event: NewEvent,
 ) {
@@ -170,13 +172,9 @@ async fn new_event(
         return;
     };
 
-    let mut write = event_storage.write_event_storage.write();
+    let Some(mut write) = event_storage.try_write() else {
+        return;
+    };
 
-    write
-        .plants_index
-        .entry(new_event.plant_id)
-        .and_modify(|entry| {
-            entry.add_new_events(vec![response.clone()]);
-        })
-        .or_insert(PlantEvents::new_from_events(vec![response.clone()]));
+    write.add_new_events(vec![response.clone()]);
 }

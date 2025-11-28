@@ -175,16 +175,19 @@ impl Default for LastRequest {
     }
 }
 
-pub fn request_events_resource(request_details: GetEvent) -> LocalResource<Vec<EventInstance>> {
+pub fn request_events_resource(
+    request_details: GetEvent,
+    plant_events: RwSignal<PlantEvents>,
+) -> LocalResource<Vec<EventInstance>> {
     let dirty_mangaer = expect_context::<DirtyManagerContext>();
     let reqwest_client = expect_context::<Store<FrontEndState>>();
-    let event_storage_context = expect_context::<EventStorageContext>();
+    //let event_storage_context = expect_context::<EventStorageContext>();
     LocalResource::new(move || {
         request_events(
             dirty_mangaer.write,
             reqwest_client.get(),
             request_details.clone(),
-            event_storage_context,
+            plant_events,
         )
     })
 }
@@ -193,21 +196,17 @@ async fn request_events(
     dirty_manager: WriteSignal<DirtyManager>,
     reqwest_client: FrontEndState,
     request_details: GetEvent,
-    //event_storage: EventStorage,
-    event_storage: EventStorageContext,
+    local_events: RwSignal<PlantEvents>,
 ) -> Vec<EventInstance> {
     // See if we have any saved events for the requested plant
 
-    let read_event_storage = match event_storage.get_event_storage.try_get() {
+    let read_event_storage = match local_events.try_get() {
         Some(data) => data,
         None => return vec![],
     };
 
-    match read_event_storage
-        .plants_index
-        .get(&request_details.plant_id)
-    {
-        Some(plant_events) => {
+    match read_event_storage.events.is_empty() {
+        false => {
             // If we do have a saved events then lets request the dirty manager and see if it needs updating for our requested events
             let mut dirty_manager = match dirty_manager.try_write() {
                 Some(data) => data,
@@ -221,14 +220,14 @@ async fn request_events(
                     let new_events = request_events_http(
                         reqwest_client,
                         request_details.clone(),
-                        event_storage.write_event_storage,
+                        local_events.write_only(),
                     )
                     .await;
                     dirty_manager.clean_event(request_details.plant_id, request_details.event_type);
                     return new_events;
                 }
             }
-            return match plant_events
+            return match read_event_storage
                 .get_events(request_details.request_details, request_details.event_type)
             {
                 Some(events) => events,
@@ -238,14 +237,10 @@ async fn request_events(
             // If it is dirty send the request for new events after clearing our current events
             // If its not dirty see if the requested events fall within our cache. If they do then just return those evennts. If not send a request to cover the gap
         }
-        None => {
+        true => {
             // There are no saved events so we need to request new ones and return those
-            return request_events_http(
-                reqwest_client,
-                request_details,
-                event_storage.write_event_storage,
-            )
-            .await;
+            return request_events_http(reqwest_client, request_details, local_events.write_only())
+                .await;
         }
     }
 }
@@ -253,7 +248,7 @@ async fn request_events(
 async fn request_events_http(
     reqwest_client: FrontEndState,
     request_details: GetEvent,
-    event_storage: WriteSignal<EventStorage>,
+    event_storage: WriteSignal<PlantEvents>,
 ) -> Vec<EventInstance> {
     let Some(response) = reqwest_client
         .client
@@ -282,13 +277,7 @@ async fn request_events_http(
         None => return vec![],
     };
 
-    write
-        .plants_index
-        .entry(request_details.plant_id)
-        .and_modify(|entry| {
-            entry.add_new_events(response.clone());
-        })
-        .or_insert(PlantEvents::new_from_events(response.clone()));
+    write.add_new_events(response.clone());
 
     response
 }
