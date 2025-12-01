@@ -1,11 +1,9 @@
+use gloo_net::http::{Request, RequestBuilder};
 use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::{components::*, path};
 use reactive_stores::Store;
-use reqwest::{
-    header::{self, ACCESS_CONTROL_ALLOW_ORIGIN},
-    Client,
-};
+
 use thaw::ConfigProvider;
 
 // Modules
@@ -21,9 +19,9 @@ use crate::{
     pages::{gallery::Gallery, home::Home, new_plant::NewPlantPage, plant_page::PlantPage},
 };
 
-#[derive(Clone, Debug, Default, Store)]
-struct FrontEndState {
-    client: Client,
+pub fn default_http_request(request: RequestBuilder) -> RequestBuilder {
+    let request = request.header("Access-Control-Allow-Origin", "http://localhost");
+    request
 }
 
 /// An app router which renders the homepage and handles 404's
@@ -31,17 +29,6 @@ struct FrontEndState {
 pub fn App() -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
-    let mut headers = header::HeaderMap::new();
-    headers.insert(
-        ACCESS_CONTROL_ALLOW_ORIGIN,
-        header::HeaderValue::from_static("http://localhost"),
-    );
-    let client = reqwest::Client::builder()
-        .default_headers(headers)
-        .build()
-        .expect("Reqwest Client Build failed");
-
-    provide_context(Store::new(FrontEndState { client }));
 
     let theme = RwSignal::new(theme::update_theme());
 

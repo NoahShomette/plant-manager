@@ -7,13 +7,16 @@ use std::{
 };
 
 use chrono::{DateTime, NaiveDateTime, Utc};
+use gloo_net::http::Request;
 use leptos::{
+    leptos_dom::logging::console_log,
     prelude::{Signal, Write, WriteSignal},
     reactive::spawn_local,
     server::codee::string::JsonSerdeCodec,
 };
 
 use reactive_stores::Store;
+use send_wrapper::SendWrapper;
 use serde::{Deserialize, Serialize};
 use shared::{
     events::{
@@ -27,7 +30,7 @@ use uuid::Uuid;
 
 use crate::{
     data_storage::{DirtyManager, DirtyManagerContext},
-    FrontEndState,
+    default_http_request,
 };
 
 use leptos::prelude::*;
@@ -176,25 +179,24 @@ impl Default for LastRequest {
 }
 
 pub fn request_events_resource(
-    request_details: GetEvent,
+    request_details: RwSignal<GetEvent>,
     plant_events: RwSignal<PlantEvents>,
 ) -> LocalResource<Vec<EventInstance>> {
     let dirty_mangaer = expect_context::<DirtyManagerContext>();
-    let reqwest_client = expect_context::<Store<FrontEndState>>();
     //let event_storage_context = expect_context::<EventStorageContext>();
     LocalResource::new(move || {
         request_events(
             dirty_mangaer.write,
-            reqwest_client.get(),
-            request_details.clone(),
+            dirty_mangaer.get.get(),
+            request_details.get(),
             plant_events,
         )
     })
 }
 
-async fn request_events(
+pub async fn request_events(
     dirty_manager: WriteSignal<DirtyManager>,
-    reqwest_client: FrontEndState,
+    dirty_manager_read: DirtyManager,
     request_details: GetEvent,
     local_events: RwSignal<PlantEvents>,
 ) -> Vec<EventInstance> {
@@ -208,21 +210,25 @@ async fn request_events(
     match read_event_storage.events.is_empty() {
         false => {
             // If we do have a saved events then lets request the dirty manager and see if it needs updating for our requested events
-            let mut dirty_manager = match dirty_manager.try_write() {
-                Some(data) => data,
-                None => return vec![],
-            };
-
             if let Some((events, _earliest_dirty_event)) =
-                dirty_manager.events.get_mut(&request_details.plant_id)
+                dirty_manager_read.events.get(&request_details.plant_id)
             {
+                console_log(&format!("Local events found"));
+
                 if events.contains(&request_details.event_type) {
-                    let new_events = request_events_http(
-                        reqwest_client,
-                        request_details.clone(),
-                        local_events.write_only(),
-                    )
-                    .await;
+                    console_log(&format!(
+                        "Dirty Manager contains event_type: {}",
+                        request_details.event_type
+                    ));
+
+                    let new_events =
+                        request_events_http(request_details.clone(), local_events.write_only())
+                            .await;
+
+                    let mut dirty_manager = match dirty_manager.try_write_untracked() {
+                        Some(data) => data,
+                        None => return vec![],
+                    };
                     dirty_manager.clean_event(request_details.plant_id, request_details.event_type);
                     return new_events;
                 }
@@ -238,22 +244,29 @@ async fn request_events(
             // If its not dirty see if the requested events fall within our cache. If they do then just return those evennts. If not send a request to cover the gap
         }
         true => {
+            console_log(&format!("No Event data saved"));
             // There are no saved events so we need to request new ones and return those
-            return request_events_http(reqwest_client, request_details, local_events.write_only())
-                .await;
+            return request_events_http(request_details, local_events.write_only()).await;
         }
     }
 }
 
 async fn request_events_http(
-    reqwest_client: FrontEndState,
     request_details: GetEvent,
     event_storage: WriteSignal<PlantEvents>,
 ) -> Vec<EventInstance> {
-    let Some(response) = reqwest_client
-        .client
-        .post("http://localhost:8080/events/get-events")
+    let request = Request::post(&format!("http://localhost:8080/events/get-events"));
+    let request = default_http_request(request);
+
+    let Some(request_with_json) = request
         .json(&request_details)
+        .map_err(|e| log::error!("{e}"))
+        .ok()
+    else {
+        return vec![];
+    };
+
+    let Some(response) = request_with_json
         .send()
         .await
         .map_err(|e| log::error!("{e}"))

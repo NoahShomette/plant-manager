@@ -2,6 +2,7 @@ use std::io::Cursor;
 
 use base64::Engine;
 use chrono::{Local, Utc};
+use gloo_net::http::Request;
 use leptos::{prelude::*, reactive::spawn_local};
 use reactive_stores::Store;
 use shared::plant::{plant_http::NewPlant, PlantDemographic};
@@ -11,7 +12,7 @@ use web_sys::js_sys::Uint8Array;
 
 use crate::{
     data_storage::plants::{PlantStorage, PlantStorageContext},
-    FrontEndState,
+    default_http_request,
 };
 
 #[component]
@@ -19,7 +20,6 @@ pub fn NewPlant() -> impl IntoView {
     let value = RwSignal::new("".to_string());
 
     let submit_response = RwSignal::new("Unknown".to_string());
-    let reqwest_client: Store<FrontEndState> = expect_context::<Store<FrontEndState>>();
     let plant_storage_context: PlantStorageContext = expect_context::<PlantStorageContext>();
     let submit_response_2 = RwSignal::new("Unknown".to_string());
     let date_value = RwSignal::new(Local::now().date_naive());
@@ -28,12 +28,10 @@ pub fn NewPlant() -> impl IntoView {
             submit_response,
             submit_response_2,
             value.get(),
-            reqwest_client.get(),
             plant_storage_context.get_plant_storage.get(),
             plant_storage_context.write_plant_storage,
         ))
     };
-
 
     //let uploaded_images = RwSignal::new(Image)
 
@@ -52,13 +50,10 @@ pub fn NewPlant() -> impl IntoView {
     }
 }
 
-
-
 async fn submit_new_plant(
     submit_response: RwSignal<String>,
     submit_response_2: RwSignal<String>,
     plant_name: String,
-    reqwest_client: FrontEndState,
     mut plant_storage: PlantStorage,
     plant_storage_write: WriteSignal<PlantStorage>,
 ) {
@@ -67,14 +62,22 @@ async fn submit_new_plant(
         return;
     }
 
-    let Some(response) = reqwest_client
-        .client
-        .post("http://localhost:8080/plants/new")
+    let request = Request::post(&format!("http://localhost:8080/plants/new"));
+    let request = default_http_request(request);
+
+    let Some(request_with_json) = request
         .json(&NewPlant {
             name: plant_name,
             timestamp: Utc::now().naive_utc().and_utc().timestamp(),
             starting_events: vec![],
         })
+        .map_err(|e| log::error!("{e}"))
+        .ok()
+    else {
+        return;
+    };
+
+    let Some(response) = request_with_json
         .send()
         .await
         .map_err(|e| log::error!("{e}"))

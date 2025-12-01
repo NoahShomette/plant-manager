@@ -3,6 +3,7 @@
 use std::time::Duration;
 
 use chrono::{DateTime, NaiveDateTime, Utc};
+use gloo_net::http::Request;
 use leptos::{
     prelude::{Signal, Write, WriteSignal},
     reactive::spawn_local,
@@ -11,6 +12,7 @@ use leptos::{
 
 use leptos_use::storage::use_local_storage;
 use reactive_stores::Store;
+use send_wrapper::SendWrapper;
 use serde::{Deserialize, Serialize};
 use shared::events::{events_http::NewEvent, EventData, EventDataKind, EventInstance, EventType};
 use uuid::Uuid;
@@ -19,7 +21,7 @@ use crate::{
     data_storage::events::event_storage::{
         EventInstanceStorageComponent, EventStorageContext, PlantEvents,
     },
-    FrontEndState,
+    default_http_request,
 };
 
 use leptos::prelude::*;
@@ -41,14 +43,12 @@ pub fn EventStorageComponent(children: Children) -> impl IntoView {
         get_event_list: pl_state,
         write_plant_list: pl_set_state,
     });
-    let reqwest_client: Store<FrontEndState> = expect_context::<Store<FrontEndState>>();
     let plant_list_context: EventListContext = expect_context::<EventListContext>();
 
     let pv_context: LastRequestContext = expect_context::<LastRequestContext>();
 
     Effect::new(move |_| {
         spawn_local(get_event_type_list(
-            reqwest_client.get_untracked(),
             pv_context.get.get_untracked(),
             pv_context.write,
             plant_list_context.write_plant_list,
@@ -59,7 +59,6 @@ pub fn EventStorageComponent(children: Children) -> impl IntoView {
         move || {
             Effect::new(move |_| {
                 spawn_local(get_event_type_list(
-                    reqwest_client.get_untracked(),
                     pv_context.get.get_untracked(),
                     pv_context.write,
                     plant_list_context.write_plant_list,
@@ -99,22 +98,17 @@ impl Default for LastRequest {
 }
 
 async fn get_event_type_list(
-    reqwest_client: FrontEndState,
     last_requested: LastRequest,
     last_requested_write: WriteSignal<LastRequest>,
     plant_list_write: WriteSignal<EventTypeList>,
 ) {
-    let Some(response) = reqwest_client
-        .client
-        .get(format!(
-            "http://localhost:8080/events/get-types/{}",
-            last_requested.0.and_utc().timestamp()
-        ))
-        .send()
-        .await
-        .map_err(|e| log::error!("{e}"))
-        .ok()
-    else {
+    let request = Request::get(&format!(
+        "http://localhost:8080/events/get-types/{}",
+        last_requested.0.and_utc().timestamp()
+    ));
+    let request = default_http_request(request);
+
+    let Some(response) = request.send().await.map_err(|e| log::error!("{e}")).ok() else {
         //TODO: Background Error message logging
         return;
     };
@@ -139,23 +133,25 @@ async fn get_event_type_list(
     last_requested_write.write().0 = Utc::now().naive_utc();
 }
 
-pub fn new_event_action() -> Action<(NewEvent, FrontEndState, WriteSignal<PlantEvents>), ()> {
-    Action::new_local(
-        |input: &(NewEvent, FrontEndState, WriteSignal<PlantEvents>)| {
-            new_event(input.2, input.1.clone(), input.0.clone())
-        },
-    )
+pub fn new_event_action() -> Action<(NewEvent), ()> {
+    Action::new_local(|input: &NewEvent| {
+        new_event(input.clone())
+    })
 }
 
-async fn new_event(
-    event_storage: WriteSignal<PlantEvents>,
-    reqwest_client: FrontEndState,
-    new_event: NewEvent,
-) {
-    let Some(response) = reqwest_client
-        .client
-        .post(format!("http://localhost:8080/events/new"))
+async fn new_event(new_event: NewEvent) {
+    let request = Request::post(&format!("http://localhost:8080/events/new"));
+    let request = default_http_request(request);
+
+    let Some(request_with_json) = request
         .json(&new_event)
+        .map_err(|e| log::error!("{e}"))
+        .ok()
+    else {
+        return;
+    };
+
+    let Some(response) = request_with_json
         .send()
         .await
         .map_err(|e| log::error!("{e}"))
@@ -172,9 +168,4 @@ async fn new_event(
         return;
     };
 
-    let Some(mut write) = event_storage.try_write() else {
-        return;
-    };
-
-    write.add_new_events(vec![response.clone()]);
 }

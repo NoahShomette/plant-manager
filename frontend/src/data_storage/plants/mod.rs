@@ -2,17 +2,17 @@
 
 use std::collections::HashMap;
 
+use gloo_net::http::Request;
 use leptos::{
     prelude::{Write, WriteSignal},
     reactive::spawn_local,
 };
 
-use reactive_stores::Store;
 use serde::{Deserialize, Serialize};
 use shared::plant::{Plant, PlantDemographic};
 use uuid::Uuid;
 
-use crate::{data_storage::plants::list::PlantListComponent, FrontEndState};
+use crate::{data_storage::plants::list::PlantListComponent, default_http_request};
 
 use leptos::prelude::*;
 
@@ -41,10 +41,8 @@ pub struct PlantStorageContext {
 
 impl PlantStorageContext {
     pub fn request_demographic(&self, plant_id: &Uuid) {
-        let reqwest_client: Store<FrontEndState> = expect_context::<Store<FrontEndState>>();
         spawn_local(request_plant_demographic(
             *plant_id,
-            reqwest_client.get(),
             self.write_plant_storage,
         ));
     }
@@ -58,20 +56,15 @@ pub struct PlantStorage {
 
 async fn request_plant_demographic(
     plant_id: Uuid,
-    reqwest_client: FrontEndState,
     plant_storage_writer: WriteSignal<PlantStorage>,
 ) {
-    let Some(response) = reqwest_client
-        .client
-        .get(format!(
-            "http://localhost:8080/plants/get-demographic/{}",
-            plant_id.to_string()
-        ))
-        .send()
-        .await
-        .map_err(|e| log::error!("{e}"))
-        .ok()
-    else {
+    let request = Request::get(&format!(
+        "http://localhost:8080/plants/get-demographic/{}",
+        plant_id.to_string()
+    ));
+    let request = default_http_request(request);
+
+    let Some(response) = request.send().await.map_err(|e| log::error!("{e}")).ok() else {
         //TODO: Background Error message logging
         return;
     };

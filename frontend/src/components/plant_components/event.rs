@@ -5,16 +5,17 @@ use shared::events::{events_http::NewEvent, EventData, EventInstance, EventType}
 use thaw::{Button, DatePicker, Select, TimePicker};
 use uuid::Uuid;
 
-use crate::{
-    data_storage::events::{
-        event_storage::{EventStorageContext, PlantEvents},
-        new_event_action, EventListContext,
-    },
-    FrontEndState,
+use crate::data_storage::events::{
+    event_storage::{EventStorageContext, PlantEvents},
+    new_event_action, EventListContext,
 };
 
 #[component]
-pub fn EventEditComponent(event_id: Uuid, plant_id: Uuid) -> impl IntoView {
+pub fn EventEditComponent(
+    event_id: Uuid,
+    plant_id: Uuid,
+    plant_events: RwSignal<PlantEvents>,
+) -> impl IntoView {
     let event_storage_context: EventListContext = expect_context::<EventListContext>();
     let event_type_signal = RwSignal::new(None);
 
@@ -42,7 +43,6 @@ pub fn EventEditComponent(event_id: Uuid, plant_id: Uuid) -> impl IntoView {
 
 #[component]
 pub fn EventViewComponent(event: EventInstance) -> impl IntoView {
-    // 3 initial states, we are still requesting data, we have received it and we have the data, we received it and we have no events
     match &event.data {
         shared::events::EventData::DateTime => view! {
             <div class="flex flex-row items-center p-2">
@@ -99,8 +99,6 @@ fn event_data_input(
     plant_id: Uuid,
 ) -> impl IntoView {
     let new_event_action = new_event_action();
-    let reqwest_client: Store<FrontEndState> = expect_context::<Store<FrontEndState>>();
-    let event_storage_context = expect_context::<WriteSignal<PlantEvents>>();
 
     match event_type {
         Some(event_type) => view! {
@@ -155,16 +153,15 @@ fn event_data_input(
                                 event_data = EventData::CustomEnum(custom_enum.clone());
                             }
                             new_event_action
-                                .dispatch((
-                                    NewEvent {
+                                .clone()
+                                .dispatch(
+                                    (NewEvent {
                                         event_type: event_type.id,
                                         plant_id,
                                         event_data,
                                         event_date: event_time.get_untracked(),
-                                    },
-                                    reqwest_client.get(),
-                                    event_storage_context,
-                                ));
+                                    }),
+                                );
                         }>
                             {match event_type.is_unique {
                                 true => "Change",

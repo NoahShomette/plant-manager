@@ -3,6 +3,7 @@
 use std::{collections::HashMap, time::Duration};
 
 use chrono::{DateTime, NaiveDateTime, Utc};
+use gloo_net::http::Request;
 use leptos::{
     prelude::{Signal, Write, WriteSignal},
     reactive::spawn_local,
@@ -20,7 +21,7 @@ use uuid::Uuid;
 
 use crate::{
     data_storage::plants::{request_plant_demographic, PlantStorage, PlantStorageContext},
-    FrontEndState,
+    default_http_request,
 };
 
 use leptos::prelude::*;
@@ -40,14 +41,12 @@ pub fn PlantListComponent(children: Children) -> impl IntoView {
         write_plant_list: pl_set_state,
     });
     //if (last_requested.get_untracked() + Duration::minutes(1)) < Utc::now().naive_utc() {}
-    let reqwest_client: Store<FrontEndState> = expect_context::<Store<FrontEndState>>();
     let plant_list_context: PlantListContext = expect_context::<PlantListContext>();
     let plant_storage_context: PlantStorageContext = expect_context::<PlantStorageContext>();
     let pv_context: LastDemographicRequestContext =
         expect_context::<LastDemographicRequestContext>();
     Effect::new(move |_| {
         spawn_local(get_plant_list(
-            reqwest_client.get_untracked(),
             pv_context.get.get_untracked(),
             pv_context.write,
             plant_list_context.get_plant_list,
@@ -58,7 +57,6 @@ pub fn PlantListComponent(children: Children) -> impl IntoView {
 
     Effect::new(move |_| {
         spawn_local(get_plant_list(
-            reqwest_client.get_untracked(),
             pv_context.get.get_untracked(),
             pv_context.write,
             plant_list_context.get_plant_list,
@@ -71,7 +69,6 @@ pub fn PlantListComponent(children: Children) -> impl IntoView {
         move || {
             Effect::new(move |_| {
                 spawn_local(get_plant_list(
-                    reqwest_client.get_untracked(),
                     pv_context.get.get_untracked(),
                     pv_context.write,
                     plant_list_context.get_plant_list,
@@ -113,24 +110,19 @@ impl Default for LastDemographicRequest {
 }
 
 async fn get_plant_list(
-    reqwest_client: FrontEndState,
     last_requested: LastDemographicRequest,
     last_requested_write: WriteSignal<LastDemographicRequest>,
     plant_list: ReadSignal<PlantList>,
     plant_list_write: WriteSignal<PlantList>,
     write_plant_storage: WriteSignal<PlantStorage>,
 ) {
-    let Some(response) = reqwest_client
-        .client
-        .get(format!(
-            "http://localhost:8080/plants/get-plant-list/{}",
-            last_requested.0.and_utc().timestamp()
-        ))
-        .send()
-        .await
-        .map_err(|e| log::error!("{e}"))
-        .ok()
-    else {
+    let request = Request::get(&format!(
+        "http://localhost:8080/plants/get-plant-list/{}",
+        last_requested.0.and_utc().timestamp()
+    ));
+    let request = default_http_request(request);
+
+    let Some(response) = request.send().await.map_err(|e| log::error!("{e}")).ok() else {
         //TODO: Background Error message logging
         return;
     };
@@ -148,11 +140,7 @@ async fn get_plant_list(
         if plant_list.get_untracked().0.contains(new_plant) {
             continue;
         }
-        spawn_local(request_plant_demographic(
-            *new_plant,
-            reqwest_client.clone(),
-            write_plant_storage,
-        ));
+        spawn_local(request_plant_demographic(*new_plant, write_plant_storage));
         // add them to the plants list plus request basic demographic data
     }
 
@@ -177,7 +165,6 @@ async fn get_plant_list(
         // refresh basic demographic data? idk exactly
         spawn_local(request_plant_demographic(
             *changed_plants,
-            reqwest_client.clone(),
             write_plant_storage,
         ));
     }

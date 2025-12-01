@@ -1,7 +1,10 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    time::Duration,
+};
 
 use chrono::NaiveDateTime;
-use leptos::{prelude::*, server::codee::string::JsonSerdeCodec};
+use leptos::{leptos_dom::logging::console_log, prelude::*, server::codee::string::JsonSerdeCodec};
 use leptos_use::{use_event_source, UseEventSourceReturn};
 use serde::{Deserialize, Serialize};
 use shared::DirtyCache;
@@ -30,31 +33,33 @@ pub fn AppStorageComponent(children: Children) -> impl IntoView {
         ..
     } = use_event_source::<DirtyCache, JsonSerdeCodec>("http://localhost:8080/dirty-cache");
 
-    let dirty_context: DirtyManagerContext = expect_context::<DirtyManagerContext>();
-
     Effect::new(move |_| {
         if let Some(dirty_cache) = data.get() {
+            console_log(&format!("Dirty Cache received message"));
+
             match dirty_cache.cache {
                 shared::CacheType::Plant(uuid) => {
-                    dirty_context.write.write().plants.insert(uuid);
+                    pv_set.update(|dirty_context| {
+                        dirty_context.plants.insert(uuid);
+                    });
                 }
                 shared::CacheType::Event(plant_id, event_id, date_of_event) => {
-                    dirty_context
-                        .write
-                        .write()
-                        .events
-                        .entry(plant_id)
-                        .and_modify(|(plant_events, _)| {
-                            plant_events.insert(event_id);
-                        })
-                        .or_insert_with(|| {
-                            let mut hash = HashSet::new();
-                            hash.insert(plant_id);
-                            (hash, date_of_event)
-                        });
+                    pv_set.update(|dirty_context| {
+                        dirty_context
+                            .events
+                            .entry(plant_id)
+                            .and_modify(|(plant_events, _)| {
+                                plant_events.insert(event_id);
+                            })
+                            .or_insert_with(|| {
+                                let mut hash = HashSet::new();
+                                hash.insert(event_id);
+                                (hash, date_of_event)
+                            });
+                    });
                 }
                 shared::CacheType::EventType(uuid) => {
-                    dirty_context.write.write().event_types.insert(uuid);
+                    pv_set.write().event_types.insert(uuid);
                 }
             }
         }

@@ -7,11 +7,12 @@ authors = ["Noah <noahshomette@gmail.com>"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+send_wrapper = "*"
 leptos = { version = "0.8.14", features = ["csr"] }
 leptos_meta = { version = "0.8" }
 leptos_router = { version = "0.8" }
 leptos-use = { version = "0.16.3", features = ["use_event_source"] }
-reqwest = { version = "0.12.22", features = ["json"] }
+#reqwest = { version = "0.12.22", features = ["json"] }
 console_log = "1"
 log = "0.4"
 console_error_panic_hook = "0.1"
@@ -22,13 +23,13 @@ chrono = { version = "0.4.41" }
 uuid = { version = "1.18.0", features = ["v4", "serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-image = {version = "0.25.6", features = ["serde"]}
+image = { version = "0.25.6", features = ["serde"] }
 icondata = "0.6.0"
 web-sys = { version = "0.3", features = ["Document", "Window", "File"] }
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "*"
-base64= "*"
-# utils
+base64 = "*"
+gloo-net = "*"
 # strum = { version = "0.25", features = ["derive", "strum_macros"] }
 # strum_macros = "0.25"
 
