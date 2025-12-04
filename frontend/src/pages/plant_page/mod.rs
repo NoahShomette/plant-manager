@@ -8,7 +8,6 @@ use chrono::{Local, Utc};
 use gloo_net::http::Request;
 use leptos::{prelude::*, reactive::spawn_local};
 use leptos_router::hooks::use_params_map;
-use reactive_stores::Store;
 use shared::{
     events::{
         events_http::{GetEvent, GetEventType, NewEvent},
@@ -46,9 +45,6 @@ pub fn PlantPage() -> impl IntoView {
         Err(_) => todo!(),
     };
 
-    let local_event_storage: RwSignal<PlantEvents> = RwSignal::new(PlantEvents::default());
-    provide_context(local_event_storage.write_only());
-
     let new_event_click = new_event_action();
     let event_list: EventListContext = expect_context::<EventListContext>();
 
@@ -57,17 +53,30 @@ pub fn PlantPage() -> impl IntoView {
         plant_id: plant_id,
         request_details: GetEventType::LastNth(1),
     });
-    let request_names = request_events_resource(get_events, local_event_storage);
+    let request_names = request_events_resource(get_events);
 
     let get_events = RwSignal::new(GetEvent {
         event_type: Uuid::parse_str(PHOTO_EVENT_TYPE_ID).expect("Invalid UUID"),
         plant_id: plant_id,
         request_details: GetEventType::LastNth(3),
     });
-    let request_photos = request_events_resource(get_events, local_event_storage);
+    let request_photos = request_events_resource(get_events);
 
     let canonical_name = RwSignal::new("...".to_string());
     let new_name = RwSignal::new(canonical_name.get_untracked());
+
+    Effect::new(move || {
+        if let Some(data) = request_names.get() {
+            *canonical_name.write() = data
+                .iter()
+                .next()
+                .unwrap()
+                .data
+                .expect_kind_string()
+                .unwrap();
+            *new_name.write() = canonical_name.get();
+        }
+    });
 
     let num_events = RwSignal::new(3);
 
@@ -79,18 +88,6 @@ pub fn PlantPage() -> impl IntoView {
     let new_photo_action = new_photo_action();
 
     view! {
-        {move || {
-            if let Some(data) = request_names.get() {
-                *canonical_name.write() = data
-                    .iter()
-                    .next()
-                    .unwrap()
-                    .data
-                    .expect_kind_string()
-                    .unwrap();
-                *new_name.write() = canonical_name.get();
-            }
-        }}
         <div>
             <div>
                 <div class="flex flex-row items-center">
@@ -167,14 +164,11 @@ pub fn PlantPage() -> impl IntoView {
                             return;
                         };
                         new_photo_action
-                            .dispatch((
-                                NewPhoto {
-                                    plant_id,
-                                    timestamp: Local::now().naive_local().and_utc().timestamp(),
-                                    photo_binary: uploaded_image,
-                                },
-                                local_event_storage.write_only(),
-                            ));
+                            .dispatch(NewPhoto {
+                                plant_id,
+                                timestamp: Local::now().naive_local().and_utc().timestamp(),
+                                photo_binary: uploaded_image,
+                            });
                     }>"Upload"</Button>
                 </div>
 
@@ -196,7 +190,6 @@ pub fn PlantPage() -> impl IntoView {
                                     event_type=event_type.clone()
                                     plant_id=plant_id
                                     num_events=num_events.get()
-                                    plant_events=local_event_storage
                                 />
                             }
                         }
@@ -234,12 +227,7 @@ async fn submit_new_photos(file_list: FileList, uploaded_image: RwSignal<Option<
 
 /// Component to view a specific type of event
 #[component]
-fn EventDisplayComponent(
-    event_type: EventType,
-    plant_id: Uuid,
-    num_events: i32,
-    plant_events: RwSignal<PlantEvents>,
-) -> impl IntoView {
+fn EventDisplayComponent(event_type: EventType, plant_id: Uuid, num_events: i32) -> impl IntoView {
     let get_events = RwSignal::new(GetEvent {
         event_type: event_type.id,
         plant_id: plant_id,
@@ -248,7 +236,7 @@ fn EventDisplayComponent(
 
     let (events, set_events) = signal(vec![]);
 
-    let event_action = request_events_resource(get_events, plant_events);
+    let event_action = request_events_resource(get_events);
 
     Effect::new(move || {
         if let Some(events) = event_action.get() {
@@ -281,7 +269,6 @@ fn EventDisplayComponent(
                                         <EventEditComponent
                                             event_id=event_type.id
                                             plant_id=plant_id
-                                            plant_events
                                         />
                                     }
                                 }
@@ -318,13 +305,11 @@ fn EventDisplayComponent(
     }
 }
 
-pub fn new_photo_action() -> Action<(NewPhoto, WriteSignal<PlantEvents>), ()> {
-    Action::new_local(|input: &(NewPhoto, WriteSignal<PlantEvents>)| {
-        new_photo(input.1.clone(), input.0.clone())
-    })
+pub fn new_photo_action() -> Action<NewPhoto, ()> {
+    Action::new_local(|input: &NewPhoto| new_photo(input.clone()))
 }
 
-async fn new_photo(event_storage: WriteSignal<PlantEvents>, new_event: NewPhoto) {
+async fn new_photo(new_event: NewPhoto) {
     let request = Request::post(&format!("http://localhost:8080/photos/new"));
     let request = default_http_request(request);
 
@@ -348,12 +333,8 @@ async fn new_photo(event_storage: WriteSignal<PlantEvents>, new_event: NewPhoto)
         return;
     };
 
-    let Ok(response) = serde_json::de::from_str::<EventInstance>(&body_text) else {
+    let Ok(_response) = serde_json::de::from_str::<EventInstance>(&body_text) else {
         //TODO: Background Error message logging
         return;
     };
-
-    let mut write = event_storage.write();
-
-    write.add_new_events(vec![response.clone()]);
 }

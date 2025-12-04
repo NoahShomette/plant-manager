@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use chrono::{Local, NaiveDateTime};
 use leptos::prelude::*;
 use reactive_stores::Store;
@@ -11,16 +13,12 @@ use crate::data_storage::events::{
 };
 
 #[component]
-pub fn EventEditComponent(
-    event_id: Uuid,
-    plant_id: Uuid,
-    plant_events: RwSignal<PlantEvents>,
-) -> impl IntoView {
-    let event_storage_context: EventListContext = expect_context::<EventListContext>();
+pub fn EventEditComponent(event_id: Uuid, plant_id: Uuid) -> impl IntoView {
+    let event_list_context: EventListContext = expect_context::<EventListContext>();
     let event_type_signal = RwSignal::new(None);
 
     let events = move || {
-        let events = event_storage_context.get_event_list.get();
+        let events = event_list_context.get_event_list.get();
         let event_type = events
             .0
             .iter()
@@ -43,6 +41,21 @@ pub fn EventEditComponent(
 
 #[component]
 pub fn EventViewComponent(event: EventInstance) -> impl IntoView {
+    let (humanized_time, set_humanized_time) = signal(local_time_ago_humanized(event.event_date));
+
+    set_interval(
+        move || {
+            Effect::new(move |_| {
+                set_humanized_time.maybe_update(|mut og| {
+                    let should_update = og != &mut local_time_ago_humanized(event.event_date);
+                    *og = local_time_ago_humanized(event.event_date);
+                    should_update
+                });
+            });
+        },
+        Duration::from_secs(1),
+    );
+
     match &event.data {
         shared::events::EventData::DateTime => view! {
             <div class="flex flex-row items-center p-2">
@@ -50,7 +63,7 @@ pub fn EventViewComponent(event: EventInstance) -> impl IntoView {
                     <div class="text-center">{event.event_date.format("%A").to_string()}</div>
                     <div class="text-center">{event.event_date.format("%B %d").to_string()}</div>
                 </div>
-                <div class="text-center">{local_time_ago_humanized(event.event_date)}</div>
+                <div class="text-center">{move || humanized_time.get()}</div>
 
             </div>
         }
@@ -76,7 +89,7 @@ pub fn local_time_ago_humanized(date: NaiveDateTime) -> String {
         0 => match duration.num_hours() {
             0 => match duration.num_minutes() {
                 0 => format!("{} seconds ago", duration.num_seconds()),
-                _ => format!("{} minues ago", duration.num_minutes()),
+                _ => format!("{} minutes ago", duration.num_minutes()),
             },
             _ => format!("{} hours ago", duration.num_hours()),
         },

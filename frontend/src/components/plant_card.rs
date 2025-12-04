@@ -5,17 +5,16 @@ use shared::events::{
 };
 use uuid::Uuid;
 
-use crate::data_storage::events::event_storage::{request_events_resource, PlantEvents};
+use crate::data_storage::events::event_storage::request_events_resource;
 
 #[component]
 pub fn PlantCard(plant_id: Uuid) -> impl IntoView {
-    let local_event_storage: RwSignal<PlantEvents> = RwSignal::new(PlantEvents::default());
     let get_events = RwSignal::new(GetEvent {
         event_type: Uuid::parse_str(PLANT_NAME_EVENT_ID).expect("Invalid UUID"),
         plant_id: plant_id,
         request_details: GetEventType::LastNth(1),
     });
-    let request_events_resource = request_events_resource(get_events, local_event_storage);
+    let request_events_resource = request_events_resource(get_events);
 
     view! {
         <a href=format!("/plant/{}/view", plant_id.to_string())>

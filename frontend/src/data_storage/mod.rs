@@ -36,7 +36,6 @@ pub fn AppStorageComponent(children: Children) -> impl IntoView {
     Effect::new(move |_| {
         if let Some(dirty_cache) = data.get() {
             console_log(&format!("Dirty Cache received message"));
-
             match dirty_cache.cache {
                 shared::CacheType::Plant(uuid) => {
                     pv_set.update(|dirty_context| {

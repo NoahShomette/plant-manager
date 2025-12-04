@@ -5,23 +5,15 @@ use std::time::Duration;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use gloo_net::http::Request;
 use leptos::{
-    prelude::{Signal, Write, WriteSignal},
+    prelude::{Write, WriteSignal},
     reactive::spawn_local,
-    server::codee::string::JsonSerdeCodec,
 };
 
-use leptos_use::storage::use_local_storage;
-use reactive_stores::Store;
-use send_wrapper::SendWrapper;
 use serde::{Deserialize, Serialize};
-use shared::events::{events_http::NewEvent, EventData, EventDataKind, EventInstance, EventType};
-use uuid::Uuid;
+use shared::events::{events_http::NewEvent, EventInstance, EventType};
 
 use crate::{
-    data_storage::events::event_storage::{
-        EventInstanceStorageComponent, EventStorageContext, PlantEvents,
-    },
-    default_http_request,
+    data_storage::events::event_storage::EventInstanceStorageComponent, default_http_request,
 };
 
 use leptos::prelude::*;
@@ -133,10 +125,8 @@ async fn get_event_type_list(
     last_requested_write.write().0 = Utc::now().naive_utc();
 }
 
-pub fn new_event_action() -> Action<(NewEvent), ()> {
-    Action::new_local(|input: &NewEvent| {
-        new_event(input.clone())
-    })
+pub fn new_event_action() -> Action<NewEvent, ()> {
+    Action::new_local(|input: &NewEvent| new_event(input.clone()))
 }
 
 async fn new_event(new_event: NewEvent) {
@@ -167,5 +157,4 @@ async fn new_event(new_event: NewEvent) {
         //TODO: Background Error message logging
         return;
     };
-
 }

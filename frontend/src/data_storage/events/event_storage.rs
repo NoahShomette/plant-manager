@@ -13,6 +13,7 @@ use leptos::{
     prelude::{Signal, Write, WriteSignal},
     reactive::spawn_local,
     server::codee::string::JsonSerdeCodec,
+    server_fn::request,
 };
 
 use reactive_stores::Store;
@@ -128,15 +129,14 @@ impl PlantEvents {
     }
 
     pub fn add_new_events(&mut self, events: Vec<EventInstance>) {
-        let mut new_earliest: Option<NaiveDateTime> = None;
         for event in events {
             match self.earliest_event {
                 Some(date) => {
                     if event.event_date.and_utc().timestamp() < date.and_utc().timestamp() {
-                        new_earliest = Some(event.event_date)
+                        self.earliest_event = Some(event.event_date)
                     }
                 }
-                None => new_earliest = Some(event.event_date),
+                None => self.earliest_event = Some(event.event_date),
             }
 
             self.events
@@ -150,15 +150,29 @@ impl PlantEvents {
                     map
                 });
         }
-
-        if let Some(date) = new_earliest {
-            self.earliest_event = Some(date);
-        }
     }
 
     pub fn clear(&mut self) {
         self.earliest_event = None;
         self.events = HashMap::new();
+    }
+
+    /// Conducts a simple check to see if the local plant events are able to fulfill the events request
+    ///
+    /// Note that ALL will always return false
+    pub fn can_fulfill_request(&self, request: &GetEvent) -> bool {
+        match request.request_details {
+            GetEventType::Span(naive_date_time, _naive_date_time1) => {
+                let Some(earliest_event) = self.earliest_event else {
+                    return false;
+                };
+                naive_date_time >= earliest_event
+            }
+            GetEventType::LastNth(nth) => {
+                self.events.get(&request.event_type).iter().count() >= nth as usize
+            }
+            GetEventType::All => false,
+        }
     }
 }
 
@@ -180,35 +194,37 @@ impl Default for LastRequest {
 
 pub fn request_events_resource(
     request_details: RwSignal<GetEvent>,
-    plant_events: RwSignal<PlantEvents>,
 ) -> LocalResource<Vec<EventInstance>> {
     let dirty_mangaer = expect_context::<DirtyManagerContext>();
-    //let event_storage_context = expect_context::<EventStorageContext>();
+    let event_storage_context = expect_context::<EventStorageContext>();
     LocalResource::new(move || {
         request_events(
             dirty_mangaer.write,
             dirty_mangaer.get.get(),
             request_details.get(),
-            plant_events,
+            event_storage_context,
         )
     })
 }
 
-pub async fn request_events(
+async fn request_events(
     dirty_manager: WriteSignal<DirtyManager>,
     dirty_manager_read: DirtyManager,
     request_details: GetEvent,
-    local_events: RwSignal<PlantEvents>,
+    event_storage_context: EventStorageContext,
 ) -> Vec<EventInstance> {
     // See if we have any saved events for the requested plant
 
-    let read_event_storage = match local_events.try_get() {
+    let read_event_storage = match event_storage_context.get_event_storage.try_get_untracked() {
         Some(data) => data,
         None => return vec![],
     };
 
-    match read_event_storage.events.is_empty() {
-        false => {
+    match read_event_storage
+        .plants_index
+        .get(&request_details.plant_id)
+    {
+        Some(plant_events) => {
             // If we do have a saved events then lets request the dirty manager and see if it needs updating for our requested events
             if let Some((events, _earliest_dirty_event)) =
                 dirty_manager_read.events.get(&request_details.plant_id)
@@ -221,9 +237,11 @@ pub async fn request_events(
                         request_details.event_type
                     ));
 
-                    let new_events =
-                        request_events_http(request_details.clone(), local_events.write_only())
-                            .await;
+                    let new_events = request_events_http(
+                        request_details.clone(),
+                        event_storage_context.write_event_storage,
+                    )
+                    .await;
 
                     let mut dirty_manager = match dirty_manager.try_write_untracked() {
                         Some(data) => data,
@@ -233,27 +251,43 @@ pub async fn request_events(
                     return new_events;
                 }
             }
-            return match read_event_storage
-                .get_events(request_details.request_details, request_details.event_type)
-            {
-                Some(events) => events,
-                None => vec![],
+            // If theres no dirty cache then check if we have this event saved
+
+            return match plant_events.can_fulfill_request(&request_details) {
+                true => match plant_events.get_events(
+                    request_details.request_details.clone(),
+                    request_details.event_type,
+                ) {
+                    Some(events) => events,
+                    None => {
+                        vec![]
+                    }
+                },
+                false => {
+                    request_events_http(
+                        request_details.clone(),
+                        event_storage_context.write_event_storage,
+                    )
+                    .await
+                }
             };
+
             // We have saved events so check the cache and see if its dirty
             // If it is dirty send the request for new events after clearing our current events
             // If its not dirty see if the requested events fall within our cache. If they do then just return those evennts. If not send a request to cover the gap
         }
-        true => {
+        None => {
             console_log(&format!("No Event data saved"));
             // There are no saved events so we need to request new ones and return those
-            return request_events_http(request_details, local_events.write_only()).await;
+            return request_events_http(request_details, event_storage_context.write_event_storage)
+                .await;
         }
     }
 }
 
 async fn request_events_http(
     request_details: GetEvent,
-    event_storage: WriteSignal<PlantEvents>,
+    event_storage: WriteSignal<EventStorage>,
 ) -> Vec<EventInstance> {
     let request = Request::post(&format!("http://localhost:8080/events/get-events"));
     let request = default_http_request(request);
@@ -290,7 +324,13 @@ async fn request_events_http(
         None => return vec![],
     };
 
-    write.add_new_events(response.clone());
+    write
+        .plants_index
+        .entry(request_details.plant_id)
+        .and_modify(|entry| {
+            entry.add_new_events(response.clone());
+        })
+        .or_insert(PlantEvents::new_from_events(response.clone()));
 
     response
 }
