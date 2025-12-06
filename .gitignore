@@ -7,6 +7,7 @@ backend/assets/
 frontend/debug/
 frontend/target/
 frontend/dist/
+frontend/node_modules/
 
 shared/debug/
 shared/target/
