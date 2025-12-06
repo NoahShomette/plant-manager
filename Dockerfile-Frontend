@@ -7,7 +7,7 @@ VOLUME ["/app/config"]
 RUN apt-get update && \
     rustup target add wasm32-unknown-unknown && \
     cargo install --locked trunk && \
-    apt-get install nodejs
+    apt-get install nodejs -y
 
 # Set the working directory
 WORKDIR /usr/frontend/src/app
