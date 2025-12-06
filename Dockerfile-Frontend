@@ -11,8 +11,10 @@ RUN apt-get update && \
     apt-get install npm -y
 
 # Set the working directory
-WORKDIR /usr/frontend/src/app
+WORKDIR /usr/frontend/src/app/frontend
 RUN npm install
+
+WORKDIR /usr/frontend/src/app
 
 # Create .cargo/config.toml for cross-compilation
 RUN mkdir -p .cargo
