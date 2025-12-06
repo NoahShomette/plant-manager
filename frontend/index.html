@@ -9,9 +9,8 @@
         <link data-trunk rel="icon" href="public/favicon.ico" />
         <link data-trunk rel="copy-file" href="public/js-yaml.min.js" />
         <link data-trunk rel="copy-dir" href="public/config/" />
-        <script src="js-yaml.min.js"></script>
+        <script src="/js-yaml.min.js"></script>
         <script type="module">
-            import { jsyaml } from "./js-yaml.min.js";
             fetch("/config/config.yaml")
                 .then((response) => {
                     if (!response.ok) {
