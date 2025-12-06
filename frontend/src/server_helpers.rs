@@ -25,7 +25,5 @@ pub fn default_http_request(request: RequestBuilder) -> RequestBuilder {
 pub fn base_server_addr() -> String {
     let (state, _set_state, _) = use_local_storage::<String, FromToStringCodec>("SERVER_ADDR");
     //let addr: &'static str = env!("SERVER_ADDR");
-    let addr: &'static str = "localhost:8080";
-
-    format!("http://{}", state.get_untracked())
+    format!("{}", state.get_untracked())
 }
