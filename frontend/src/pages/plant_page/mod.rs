@@ -29,10 +29,9 @@ use crate::{
         photo::PhotoDisplayComponent,
     },
     data_storage::events::{
-        event_storage::{request_events_resource, PlantEvents},
-        new_event_action, EventListContext,
+        event_storage::request_events_resource, new_event_action, EventListContext,
     },
-    default_http_request,
+    server_helpers::post_request,
 };
 /// Default Home Page
 #[component]
@@ -88,7 +87,7 @@ pub fn PlantPage() -> impl IntoView {
     let new_photo_action = new_photo_action();
 
     view! {
-        <div>
+        <div class="container flex flex-col items-center">
             <div>
                 <div class="flex flex-row items-center">
                     {
@@ -96,7 +95,7 @@ pub fn PlantPage() -> impl IntoView {
                             <input
                                 node_ref=name_input_ref
                                 type="text"
-                                class="text-secondary p-4 text-5xl font-extrabold tracking-wide italic"
+                                class="text-secondary p-4 text-3xl  w-full font-extrabold tracking-wide italic"
                                 bind:value=new_name
                                 on:blur=move |_| {
                                     if new_name.get() == canonical_name.get() {
@@ -310,8 +309,7 @@ pub fn new_photo_action() -> Action<NewPhoto, ()> {
 }
 
 async fn new_photo(new_event: NewPhoto) {
-    let request = Request::post(&format!("http://localhost:8080/photos/new"));
-    let request = default_http_request(request);
+    let request = post_request(&format!("/photos/new"));
 
     let Some(request_with_json) = request
         .json(&new_event)

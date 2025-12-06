@@ -1,17 +1,14 @@
 //! Stores a local copy of plants for lowered network usage and faster responses
 
-use std::{collections::HashMap, time::Duration};
+use std::time::Duration;
 
 use chrono::{DateTime, NaiveDateTime, Utc};
 use gloo_net::http::Request;
 use leptos::{
-    prelude::{Signal, Write, WriteSignal},
+    prelude::{Write, WriteSignal},
     reactive::spawn_local,
-    server::codee::string::JsonSerdeCodec,
 };
 
-use leptos_use::storage::use_local_storage;
-use reactive_stores::Store;
 use serde::{Deserialize, Serialize};
 use shared::plant::{
     plant_http::{VerifyClientPlantList, VerifyClientPlantListResponse},
@@ -21,7 +18,7 @@ use uuid::Uuid;
 
 use crate::{
     data_storage::plants::{request_plant_demographic, PlantStorage, PlantStorageContext},
-    default_http_request,
+    server_helpers::get_request,
 };
 
 use leptos::prelude::*;
@@ -116,11 +113,10 @@ async fn get_plant_list(
     plant_list_write: WriteSignal<PlantList>,
     write_plant_storage: WriteSignal<PlantStorage>,
 ) {
-    let request = Request::get(&format!(
-        "http://localhost:8080/plants/get-plant-list/{}",
+    let request = get_request(&format!(
+        "/plants/get-plant-list/{}",
         last_requested.0.and_utc().timestamp()
     ));
-    let request = default_http_request(request);
 
     let Some(response) = request.send().await.map_err(|e| log::error!("{e}")).ok() else {
         //TODO: Background Error message logging

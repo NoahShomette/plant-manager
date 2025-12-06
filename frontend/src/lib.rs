@@ -10,6 +10,7 @@ use thaw::ConfigProvider;
 mod components;
 mod data_storage;
 mod pages;
+mod server_helpers;
 mod theme;
 
 // Top-Level pages
@@ -18,11 +19,6 @@ use crate::{
     data_storage::AppStorageComponent,
     pages::{gallery::Gallery, home::Home, new_plant::NewPlantPage, plant_page::PlantPage},
 };
-
-pub fn default_http_request(request: RequestBuilder) -> RequestBuilder {
-    let request = request.header("Access-Control-Allow-Origin", "http://localhost");
-    request
-}
 
 /// An app router which renders the homepage and handles 404's
 #[component]
@@ -33,20 +29,20 @@ pub fn App() -> impl IntoView {
     let theme = RwSignal::new(theme::update_theme());
 
     view! {
-        <ConfigProvider theme>
+        <ConfigProvider theme class="">
             <AppStorageComponent>
                 <Stylesheet id="leptos" href="/style/output.css" />
                 <Html attr:lang="en" attr:dir="ltr" attr:data-theme="light" />
 
                 // sets the document title
-                <Title text="Household of Eden" />
+                <Title text="House of Eden" />
 
                 // injects metadata in the <head> of the page
                 <Meta charset="UTF-8" />
                 <Meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                <div class="flex flex-col h-screen justify-stretch">
+                <div class="flex flex-col items-stretch">
                     <Navbar />
-                    <div class="bg-(--background) h-full">
+                    <div class="flex bg-background flex-col">
                         <Router>
                             <Routes fallback=|| view! { NotFound }>
                                 <Route path=path!("/") view=Home />

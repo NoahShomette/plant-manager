@@ -12,8 +12,8 @@ pub fn GalleryComponent() -> impl IntoView {
         move || 1usize.max(plant_storage_context.get_plant_storage.get().plants.len() / 20);
     let current_page = RwSignal::new(1);
     view! {
-        <div class="flex flex-col justify-center content-center">
-            <div class="flex flex-wrap gap-3 p-3 justify-center">
+        <div class="container flex flex-col items-center self-center">
+            <div class="grid grid-flow-col grid-cols-2 md:grid-cols-4 gap-3 p-3 justify-center ">
                 <For
                     each=move || plant_storage_context.get_plant_storage.get().plants.clone()
                     key=|item| item.0
@@ -22,12 +22,7 @@ pub fn GalleryComponent() -> impl IntoView {
                     }
                 />
             </div>
-            <Pagination
-                page=current_page
-                page_count=1
-                sibling_count=1
-                class="justify-center"
-            />
+            <Pagination page=current_page page_count=1 sibling_count=1 class="justify-center" />
         </div>
     }
 }

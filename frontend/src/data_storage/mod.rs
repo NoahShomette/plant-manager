@@ -10,7 +10,10 @@ use serde::{Deserialize, Serialize};
 use shared::DirtyCache;
 use uuid::Uuid;
 
-use crate::data_storage::{events::EventStorageComponent, plants::PlantStorageComponent};
+use crate::{
+    data_storage::{events::EventStorageComponent, plants::PlantStorageComponent},
+    server_helpers::base_server_addr,
+};
 
 pub mod events;
 pub mod plants;
@@ -31,7 +34,10 @@ pub fn AppStorageComponent(children: Children) -> impl IntoView {
         error,
         close,
         ..
-    } = use_event_source::<DirtyCache, JsonSerdeCodec>("http://localhost:8080/dirty-cache");
+    } = use_event_source::<DirtyCache, JsonSerdeCodec>(&format!(
+        "{}/dirty-cache",
+        base_server_addr()
+    ));
 
     Effect::new(move |_| {
         if let Some(dirty_cache) = data.get() {

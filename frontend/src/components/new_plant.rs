@@ -1,18 +1,12 @@
-use std::io::Cursor;
-
-use base64::Engine;
 use chrono::{Local, Utc};
 use gloo_net::http::Request;
 use leptos::{prelude::*, reactive::spawn_local};
-use reactive_stores::Store;
 use shared::plant::{plant_http::NewPlant, PlantDemographic};
-use thaw::{Button, DatePicker, FileList, Input, Label, Upload};
-use wasm_bindgen_futures::JsFuture;
-use web_sys::js_sys::Uint8Array;
+use thaw::{Button, DatePicker, Input, Label};
 
 use crate::{
     data_storage::plants::{PlantStorage, PlantStorageContext},
-    default_http_request,
+    server_helpers::post_request,
 };
 
 #[component]
@@ -62,8 +56,7 @@ async fn submit_new_plant(
         return;
     }
 
-    let request = Request::post(&format!("http://localhost:8080/plants/new"));
-    let request = default_http_request(request);
+    let request = post_request(&format!("/plants/new"));
 
     let Some(request_with_json) = request
         .json(&NewPlant {

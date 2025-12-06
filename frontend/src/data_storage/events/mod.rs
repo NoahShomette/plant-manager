@@ -13,7 +13,8 @@ use serde::{Deserialize, Serialize};
 use shared::events::{events_http::NewEvent, EventInstance, EventType};
 
 use crate::{
-    data_storage::events::event_storage::EventInstanceStorageComponent, default_http_request,
+    data_storage::events::event_storage::EventInstanceStorageComponent,
+    server_helpers::{get_request, post_request},
 };
 
 use leptos::prelude::*;
@@ -94,11 +95,10 @@ async fn get_event_type_list(
     last_requested_write: WriteSignal<LastRequest>,
     plant_list_write: WriteSignal<EventTypeList>,
 ) {
-    let request = Request::get(&format!(
-        "http://localhost:8080/events/get-types/{}",
+    let request = get_request(&format!(
+        "/events/get-types/{}",
         last_requested.0.and_utc().timestamp()
     ));
-    let request = default_http_request(request);
 
     let Some(response) = request.send().await.map_err(|e| log::error!("{e}")).ok() else {
         //TODO: Background Error message logging
@@ -130,8 +130,7 @@ pub fn new_event_action() -> Action<NewEvent, ()> {
 }
 
 async fn new_event(new_event: NewEvent) {
-    let request = Request::post(&format!("http://localhost:8080/events/new"));
-    let request = default_http_request(request);
+    let request = post_request(&format!("/events/new"));
 
     let Some(request_with_json) = request
         .json(&new_event)

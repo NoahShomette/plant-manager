@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use shared::plant::{Plant, PlantDemographic};
 use uuid::Uuid;
 
-use crate::{data_storage::plants::list::PlantListComponent, default_http_request};
+use crate::{data_storage::plants::list::PlantListComponent, server_helpers::get_request};
 
 use leptos::prelude::*;
 
@@ -58,11 +58,7 @@ async fn request_plant_demographic(
     plant_id: Uuid,
     plant_storage_writer: WriteSignal<PlantStorage>,
 ) {
-    let request = Request::get(&format!(
-        "http://localhost:8080/plants/get-demographic/{}",
-        plant_id.to_string()
-    ));
-    let request = default_http_request(request);
+    let request = get_request(&format!("/plants/get-demographic/{}", plant_id.to_string()));
 
     let Some(response) = request.send().await.map_err(|e| log::error!("{e}")).ok() else {
         //TODO: Background Error message logging

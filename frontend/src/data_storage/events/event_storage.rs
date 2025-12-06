@@ -31,7 +31,7 @@ use uuid::Uuid;
 
 use crate::{
     data_storage::{DirtyManager, DirtyManagerContext},
-    default_http_request,
+    server_helpers::post_request,
 };
 
 use leptos::prelude::*;
@@ -289,8 +289,7 @@ async fn request_events_http(
     request_details: GetEvent,
     event_storage: WriteSignal<EventStorage>,
 ) -> Vec<EventInstance> {
-    let request = Request::post(&format!("http://localhost:8080/events/get-events"));
-    let request = default_http_request(request);
+    let request = post_request("/events/get-events");
 
     let Some(request_with_json) = request
         .json(&request_details)

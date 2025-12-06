@@ -1,5 +1,7 @@
 use leptos::prelude::*;
 
+use crate::server_helpers::base_server_addr;
+
 /// Component to view a specific type of event
 #[component]
 pub fn PhotoDisplayComponent(photo_location: String) -> impl IntoView {
@@ -7,7 +9,7 @@ pub fn PhotoDisplayComponent(photo_location: String) -> impl IntoView {
     photo = photo.split_once(".").unwrap().1.to_string();
     view! {
         <div>
-            <img width="fill" src=format!("http://localhost:8080{}", photo) />
+            <img class="rounded-(--radius)" src=format!("{}{}", base_server_addr(), photo) />
         </div>
     }
 }
