@@ -11,7 +11,7 @@ RUN apt-get update && \
     apt-get install npm -y
 
 # Set the working directory
-WORKDIR /usr/frontend/src/app/frontend
+WORKDIR /usr/frontend
 RUN npm install
 
 WORKDIR /usr/frontend/src/app
