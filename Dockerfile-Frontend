@@ -10,10 +10,6 @@ RUN apt-get update && \
     apt-get install nodejs -y && \
     apt-get install npm -y
 
-# Set the working directory
-WORKDIR /usr/frontend
-RUN npm install
-
 WORKDIR /usr/frontend/src/app
 
 # Create .cargo/config.toml for cross-compilation
@@ -23,6 +19,8 @@ RUN echo '[target.wasm32-unknown-unknown]' > .cargo/config.toml
 # Copy the source code into the container
 COPY ./frontend .
 COPY ./shared ../shared
+
+RUN npm install
 
 # Build the release version
 RUN trunk build --release
