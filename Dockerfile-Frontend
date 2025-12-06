@@ -20,7 +20,7 @@ RUN echo '[target.wasm32-unknown-unknown]' > .cargo/config.toml
 COPY ./frontend .
 COPY ./shared ../shared
 
-RUN npm install
+RUN npm install tailwindcss @tailwindcss/cli
 
 # Build the release version
 RUN trunk build --release
