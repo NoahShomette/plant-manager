@@ -6,9 +6,7 @@ VOLUME ["/app/config"]
 # Install cross-compilation dependencies
 RUN apt-get update && \
     rustup target add wasm32-unknown-unknown && \
-    cargo install --locked trunk && \
-    apt-get install nodejs -y && \
-    apt-get install npm -y
+    cargo install --locked trunk
 
 WORKDIR /usr/frontend/src/app
 
@@ -19,9 +17,6 @@ RUN echo '[target.wasm32-unknown-unknown]' > .cargo/config.toml
 # Copy the source code into the container
 COPY ./frontend .
 COPY ./shared ../shared
-
-RUN npm install tailwindcss @tailwindcss/cli
-RUN export PATH=$PATH:~/.tailwindcss/bin
 
 # Build the release version
 RUN trunk build --release
