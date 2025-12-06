@@ -1,5 +1,5 @@
 # Stage 2: Build
-FROM rust:1.89 AS frontend_builder
+FROM rust:1.91 AS frontend_builder
 
 VOLUME ["/app/config"]
 
