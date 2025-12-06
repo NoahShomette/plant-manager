@@ -4,8 +4,7 @@ use axum::{
     http::StatusCode,
     response::Response,
 };
-use chrono::{DateTime, Utc};
-use shared::{events::EventType, plant::plant_http::NewPlant};
+use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 

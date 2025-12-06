@@ -1,7 +1,7 @@
 use std::fs;
 
 use axum::{
-    routing::{get, post},
+    routing::post,
     Router,
 };
 

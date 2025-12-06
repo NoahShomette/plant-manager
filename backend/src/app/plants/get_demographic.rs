@@ -7,13 +7,13 @@ use axum::{
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use shared::{
-    events::{events_http::GetEventType, CustomEnum, EventData, PLANT_NAME_EVENT_ID, PLANT_STATE_ID},
-    plant::{Plant, PlantDemographic, PlantState},
+    events::{CustomEnum, EventData, PLANT_NAME_EVENT_ID, PLANT_STATE_ID},
+    plant::{Plant, PlantDemographic},
 };
-use sqlx::{prelude::FromRow, types::Json, PgPool};
+use sqlx::{prelude::FromRow, PgPool};
 use uuid::{uuid, Uuid};
 
-use crate::app::events::{get_event_custom, get_last_event};
+use crate::app::events::get_last_event;
 
 /// Struct which represents an entire plant
 #[derive(Debug, Serialize, Deserialize, FromRow)]

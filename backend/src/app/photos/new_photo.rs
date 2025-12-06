@@ -1,7 +1,7 @@
-use crate::app::{events::new_event, plants::get_demographic::request_plant_demographic};
+use crate::app::events::new_event;
 use axum::{
     body::Body,
-    extract::{Path, State},
+    extract::State,
     http::StatusCode,
     response::Response,
     Json,

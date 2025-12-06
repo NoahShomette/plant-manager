@@ -1,6 +1,6 @@
 use axum::{
     body::Body,
-    extract::{Path, RawPathParams, State},
+    extract::{RawPathParams, State},
     http::StatusCode,
     response::Response,
 };

@@ -6,7 +6,7 @@ use axum::{
 use crate::AppState;
 
 pub use get_event_types::{get_event_types_custom, GetDatabaseEventTypes};
-pub use get_events::{get_event_custom, get_last_event};
+pub use get_events::get_last_event;
 pub use new_event::new_event;
 
 mod get_event_types;

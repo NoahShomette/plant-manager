@@ -4,8 +4,8 @@ use axum::{
 };
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
-use shared::plant::{Plant, PlantState};
-use sqlx::{prelude::FromRow, types::Json, PgPool};
+use shared::plant::Plant;
+use sqlx::{prelude::FromRow, PgPool};
 use uuid::Uuid;
 
 /// Struct which represents an entire plant
