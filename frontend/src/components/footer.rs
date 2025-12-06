@@ -7,7 +7,7 @@ pub fn Footer() -> impl IntoView {
         <Flex
             vertical=false
             justify=FlexJustify::SpaceBetween
-            class="py-3 px-5 color-sidebar-accent mt-auto"
+            class="py-3 px-5 color-sidebar-accent"
         >
             <Flex vertical=false align=FlexAlign::Center justify=FlexJustify::Center>
                 <Link href="https://github.com/NoahShomette/plant-manager">"Github"</Link>
