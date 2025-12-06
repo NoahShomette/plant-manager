@@ -3,30 +3,19 @@
 use std::{
     collections::{BTreeMap, HashMap},
     ops::Bound,
-    time::Duration,
 };
 
-use chrono::{DateTime, NaiveDateTime, Utc};
-use gloo_net::http::Request;
+use chrono::{DateTime, NaiveDateTime};
 use leptos::{
     leptos_dom::logging::console_log,
     prelude::{Signal, Write, WriteSignal},
-    reactive::spawn_local,
-    server::codee::string::JsonSerdeCodec,
-    server_fn::request,
 };
 
-use reactive_stores::Store;
-use send_wrapper::SendWrapper;
 use serde::{Deserialize, Serialize};
-use shared::{
-    events::{
-        self,
-        events_http::{GetEvent, GetEventResponse, GetEventType, NewEvent},
-        EventInstance, EventType,
-    },
-    DirtyCache,
-};
+use shared::events::{
+        events_http::{GetEvent, GetEventType},
+        EventInstance,
+    };
 use uuid::Uuid;
 
 use crate::{

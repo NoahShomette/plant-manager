@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use thaw::{Divider, Flex, FlexAlign, FlexJustify, Link};
+use thaw::{Flex, FlexAlign, FlexJustify, Link};
 
 #[component]
 pub fn Footer() -> impl IntoView {

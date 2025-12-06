@@ -3,17 +3,13 @@
 use std::time::Duration;
 
 use chrono::{DateTime, NaiveDateTime, Utc};
-use gloo_net::http::Request;
 use leptos::{
     prelude::{Write, WriteSignal},
     reactive::spawn_local,
 };
 
 use serde::{Deserialize, Serialize};
-use shared::plant::{
-    plant_http::{VerifyClientPlantList, VerifyClientPlantListResponse},
-    Plant, PlantDemographic,
-};
+use shared::plant::plant_http::VerifyClientPlantListResponse;
 use uuid::Uuid;
 
 use crate::{

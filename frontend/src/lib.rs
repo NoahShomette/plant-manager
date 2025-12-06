@@ -1,8 +1,6 @@
-use gloo_net::http::{Request, RequestBuilder};
 use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::{components::*, path};
-use reactive_stores::Store;
 
 use thaw::ConfigProvider;
 

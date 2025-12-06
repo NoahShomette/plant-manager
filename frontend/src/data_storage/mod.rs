@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    time::Duration,
-};
+use std::collections::{HashMap, HashSet};
 
 use chrono::NaiveDateTime;
 use leptos::{leptos_dom::logging::console_log, prelude::*, server::codee::string::JsonSerdeCodec};
@@ -29,10 +26,10 @@ pub fn AppStorageComponent(children: Children) -> impl IntoView {
     });
 
     let UseEventSourceReturn {
-        ready_state,
+        
         data,
-        error,
-        close,
+        
+        
         ..
     } = use_event_source::<DirtyCache, JsonSerdeCodec>(&format!(
         "{}/dirty-cache",

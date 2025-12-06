@@ -5,7 +5,6 @@
 use std::io::Cursor;
 
 use chrono::{Local, Utc};
-use gloo_net::http::Request;
 use leptos::{prelude::*, reactive::spawn_local};
 use leptos_router::hooks::use_params_map;
 use shared::{

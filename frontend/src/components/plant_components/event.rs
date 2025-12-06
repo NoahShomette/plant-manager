@@ -2,13 +2,11 @@ use std::time::Duration;
 
 use chrono::{Local, NaiveDateTime};
 use leptos::prelude::*;
-use reactive_stores::Store;
 use shared::events::{events_http::NewEvent, EventData, EventInstance, EventType};
 use thaw::{Button, DatePicker, Select, TimePicker};
 use uuid::Uuid;
 
 use crate::data_storage::events::{
-    event_storage::{EventStorageContext, PlantEvents},
     new_event_action, EventListContext,
 };
 
@@ -46,7 +44,7 @@ pub fn EventViewComponent(event: EventInstance) -> impl IntoView {
     set_interval(
         move || {
             Effect::new(move |_| {
-                set_humanized_time.maybe_update(|mut og| {
+                set_humanized_time.maybe_update(|og| {
                     let should_update = og != &mut local_time_ago_humanized(event.event_date);
                     *og = local_time_ago_humanized(event.event_date);
                     should_update
@@ -168,12 +166,12 @@ fn event_data_input(
                             new_event_action
                                 .clone()
                                 .dispatch(
-                                    (NewEvent {
+                                    NewEvent {
                                         event_type: event_type.id,
                                         plant_id,
                                         event_data,
                                         event_date: event_time.get_untracked(),
-                                    }),
+                                    },
                                 );
                         }>
                             {match event_type.is_unique {

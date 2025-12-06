@@ -1,8 +1,6 @@
 use leptos::prelude::*;
 use thaw::{
-    Button, ButtonAppearance, Divider, DrawerBody, DrawerHeader, DrawerHeaderTitle,
-    DrawerHeaderTitleAction, DrawerPosition, DrawerSize, Flex, FlexAlign, FlexJustify,
-    InlineDrawer, OverlayDrawer,
+    Button, Divider, DrawerBody, DrawerHeader, DrawerHeaderTitle, DrawerPosition, Flex, FlexAlign, FlexJustify, OverlayDrawer,
 };
 
 #[component]

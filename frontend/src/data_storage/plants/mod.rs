@@ -2,7 +2,6 @@
 
 use std::collections::HashMap;
 
-use gloo_net::http::Request;
 use leptos::{
     prelude::{Write, WriteSignal},
     reactive::spawn_local,

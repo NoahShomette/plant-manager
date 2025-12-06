@@ -1,5 +1,4 @@
 use chrono::{Local, Utc};
-use gloo_net::http::Request;
 use leptos::{prelude::*, reactive::spawn_local};
 use shared::plant::{plant_http::NewPlant, PlantDemographic};
 use thaw::{Button, DatePicker, Input, Label};

@@ -3,7 +3,6 @@
 use std::time::Duration;
 
 use chrono::{DateTime, NaiveDateTime, Utc};
-use gloo_net::http::Request;
 use leptos::{
     prelude::{Write, WriteSignal},
     reactive::spawn_local,
