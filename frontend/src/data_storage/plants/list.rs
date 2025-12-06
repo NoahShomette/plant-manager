@@ -13,7 +13,10 @@ use shared::plant::plant_http::VerifyClientPlantListResponse;
 use uuid::Uuid;
 
 use crate::{
-    data_storage::plants::{request_plant_demographic, PlantStorage, PlantStorageContext},
+    data_storage::{
+        plants::{request_plant_demographic, PlantStorage, PlantStorageContext},
+        DirtyManager, DirtyManagerContext,
+    },
     server_helpers::get_request,
 };
 
@@ -48,7 +51,10 @@ pub fn PlantListComponent(children: Children) -> impl IntoView {
         ))
     });
 
+    let dirty_manager = expect_context::<DirtyManagerContext>();
+
     Effect::new(move |_| {
+        dirty_manager.get.get();
         spawn_local(get_plant_list(
             pv_context.get.get_untracked(),
             pv_context.write,
@@ -57,21 +63,6 @@ pub fn PlantListComponent(children: Children) -> impl IntoView {
             plant_storage_context.write_plant_storage,
         ))
     });
-
-    set_interval(
-        move || {
-            Effect::new(move |_| {
-                spawn_local(get_plant_list(
-                    pv_context.get.get_untracked(),
-                    pv_context.write,
-                    plant_list_context.get_plant_list,
-                    plant_list_context.write_plant_list,
-                    plant_storage_context.write_plant_storage,
-                ))
-            });
-        },
-        Duration::from_secs(60),
-    );
 
     view! { {children()} }
 }

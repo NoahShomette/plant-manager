@@ -12,7 +12,7 @@ send_wrapper = "*"
 leptos = { version = "0.8.14", features = ["csr"] }
 leptos_meta = { version = "0.8" }
 leptos_router = { version = "0.8" }
-leptos-use = { version = "0.16.3", features = ["use_event_source"] }
+leptos-use = { version = "0.16.3", features = ["use_event_source","use_breakpoints"] }
 #reqwest = { version = "0.12.22", features = ["json"] }
 console_log = "1"
 log = "0.4"
@@ -31,9 +31,11 @@ wasm-bindgen = "0.2"
 wasm-bindgen-futures = "*"
 base64 = "*"
 gloo-net = "*"
+random_color = {git="https://github.com/NoahShomette/random_color.git", features=["wasm"]}
+#getrandom = {version="*", features=["wasm_js"]}
 # strum = { version = "0.25", features = ["derive", "strum_macros"] }
 # strum_macros = "0.25"
-
+dotenvy ="*"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"

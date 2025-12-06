@@ -30,6 +30,8 @@ services:
     ports:
       - 3000:80
     restart: unless-stopped
+    volumes:
+      - frontend-config:/app/config
 
   db:
     image: postgres:17

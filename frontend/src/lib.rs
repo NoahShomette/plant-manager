@@ -1,4 +1,7 @@
-use leptos::prelude::*;
+use std::env;
+
+use gloo_net::http::Request;
+use leptos::{leptos_dom::logging::console_log, prelude::*, reactive::spawn_local};
 use leptos_meta::*;
 use leptos_router::{components::*, path};
 
@@ -16,6 +19,7 @@ use crate::{
     components::{footer::Footer, navbar::Navbar},
     data_storage::AppStorageComponent,
     pages::{gallery::Gallery, home::Home, new_plant::NewPlantPage, plant_page::PlantPage},
+    server_helpers::default_http_request,
 };
 
 /// An app router which renders the homepage and handles 404's
@@ -23,6 +27,12 @@ use crate::{
 pub fn App() -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
+
+    // dotenvy::from_filename("/.env").unwrap();
+    // println!(
+    //     "cargo::rustc-env=SERVER_ADDR={}",
+    //     env::var("SERVER_ADDR").unwrap()
+    // );
 
     let theme = RwSignal::new(theme::update_theme());
 

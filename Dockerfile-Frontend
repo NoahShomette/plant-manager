@@ -1,6 +1,8 @@
 # Stage 2: Build
 FROM rust:1.89 AS frontend_builder
 
+VOLUME ["/app/config"]
+
 # Install cross-compilation dependencies
 RUN apt-get update && \
     rustup target add wasm32-unknown-unknown && \

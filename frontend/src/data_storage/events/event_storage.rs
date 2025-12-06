@@ -13,9 +13,9 @@ use leptos::{
 
 use serde::{Deserialize, Serialize};
 use shared::events::{
-        events_http::{GetEvent, GetEventType},
-        EventInstance,
-    };
+    events_http::{GetEvent, GetEventType},
+    EventInstance,
+};
 use uuid::Uuid;
 
 use crate::{
@@ -27,10 +27,6 @@ use leptos::prelude::*;
 
 #[component]
 pub fn EventInstanceStorageComponent(children: Children) -> impl IntoView {
-    /* For some reason this crashes with a use_signal error
-        let (pl_state, pl_set_state, _) =
-            use_session_storage::<EventStorage, JsonSerdeCodec>("event-storage");
-    */
     let (pl_state, pl_set_state) = signal(EventStorage::new());
 
     provide_context(EventStorageContext {

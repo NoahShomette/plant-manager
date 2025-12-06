@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use shared::events::{events_http::NewEvent, EventInstance, EventType};
 
 use crate::{
-    data_storage::events::event_storage::EventInstanceStorageComponent,
+    data_storage::{events::event_storage::EventInstanceStorageComponent, DirtyManagerContext},
     server_helpers::{get_request, post_request},
 };
 
@@ -47,18 +47,16 @@ pub fn EventStorageComponent(children: Children) -> impl IntoView {
         ))
     });
 
-    set_interval(
-        move || {
-            Effect::new(move |_| {
-                spawn_local(get_event_type_list(
-                    pv_context.get.get_untracked(),
-                    pv_context.write,
-                    plant_list_context.write_plant_list,
-                ))
-            });
-        },
-        Duration::from_secs(60),
-    );
+    let dirty_manager = expect_context::<DirtyManagerContext>();
+
+    Effect::new(move |_| {
+        dirty_manager.get.get();
+        spawn_local(get_event_type_list(
+            pv_context.get.get_untracked(),
+            pv_context.write,
+            plant_list_context.write_plant_list,
+        ))
+    });
 
     view! { <EventInstanceStorageComponent>{children()}</EventInstanceStorageComponent> }
 }

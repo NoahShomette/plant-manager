@@ -1,19 +1,41 @@
-<!DOCTYPE html>
+<!doctype html>
 <html class="">
+    <head>
+        <!-- Add a plain CSS file: see https://trunkrs.dev/assets/#css -->
+        <!-- If using Tailwind with Leptos CSR, see https://trunkrs.dev/assets/#tailwind instead-->
+        <link data-trunk rel="tailwind-css" href="input.css" />
 
-<head>
-  <!-- Add a plain CSS file: see https://trunkrs.dev/assets/#css -->
-  <!-- If using Tailwind with Leptos CSR, see https://trunkrs.dev/assets/#tailwind instead-->
-  <link data-trunk rel="tailwind-css" href="input.css" />
+        <!-- Include favicon in dist output: see https://trunkrs.dev/assets/#icon -->
+        <link data-trunk rel="icon" href="public/favicon.ico" />
+        <link data-trunk rel="copy-file" href="public/js-yaml.min.js" />
+        <link data-trunk rel="copy-dir" href="public/config/" />
+        <script src="js-yaml.min.js"></script>
+        <script type="module">
+            //import { jsyaml } from "./js-yaml.min.js";
+            fetch("/config/config.yaml")
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error(
+                            `HTTP error! status: ${response.status}`,
+                        );
+                    }
+                    return response.text(); // Or .text() for plain text, .blob() for binary data
+                })
+                .then((data) => {
+                    var doc = jsyaml.load(data);
+                    localStorage.setItem("SERVER_ADDR", doc.SERVER_ADDR);
+                    console.log("Success:", doc);
+                    // Process the retrieved data here, e.g., update the DOM
+                })
+                .catch((error) => {
+                    console.error("Error fetching data:", error);
+                });
+        </script>
 
-  <!-- Include favicon in dist output: see https://trunkrs.dev/assets/#icon -->
-  <link data-trunk rel="icon" href="public/favicon.ico" />
+        <!-- include support for `wasm-bindgen --weak-refs` - see: https://rustwasm.github.io/docs/wasm-bindgen/reference/weak-references.html -->
+        <link data-trunk rel="rust" data-wasm-opt="z" data-weak-refs />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    </head>
 
-  <!-- include support for `wasm-bindgen --weak-refs` - see: https://rustwasm.github.io/docs/wasm-bindgen/reference/weak-references.html -->
-  <link data-trunk rel="rust" data-wasm-opt="z" data-weak-refs />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-</head>
-
-<body class="dark min-h-svh flex flex-col"></body>
-
+    <body class="dark flex flex-col"></body>
 </html>

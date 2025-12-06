@@ -38,15 +38,6 @@ pub struct PlantStorageContext {
     pub write_plant_storage: WriteSignal<PlantStorage>,
 }
 
-impl PlantStorageContext {
-    pub fn request_demographic(&self, plant_id: &Uuid) {
-        spawn_local(request_plant_demographic(
-            *plant_id,
-            self.write_plant_storage,
-        ));
-    }
-}
-
 /// Local in memory store of the users plants. Filled with user plants that have already been synced
 #[derive(Serialize, Deserialize, Clone, Default, PartialEq)]
 pub struct PlantStorage {
