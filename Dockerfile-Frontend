@@ -6,10 +6,12 @@ VOLUME ["/app/config"]
 # Install cross-compilation dependencies
 RUN apt-get update && \
     rustup target add wasm32-unknown-unknown && \
-    cargo install --locked trunk
+    cargo install --locked trunk && \
+    apt-get install nodejs
 
 # Set the working directory
 WORKDIR /usr/frontend/src/app
+RUN npm install
 
 # Create .cargo/config.toml for cross-compilation
 RUN mkdir -p .cargo
