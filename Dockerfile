@@ -30,9 +30,6 @@ FROM debian:bookworm
 RUN apt-get update && \
     apt-get install -y ca-certificates
 
-# Create a non-root user
-RUN useradd appuser
-
 # Set the working directory
 WORKDIR /app
 
@@ -42,13 +39,6 @@ COPY --from=backend_builder /usr/backend/src/app/target/x86_64-unknown-linux-gnu
 
 # Copy static assets
 COPY ./backend/assets ./assets/
-
-# Set the ownership and permissions
-RUN chown appuser:appuser ./backend && \
-    chmod 755 ./backend
-
-# Switch to the non-root user
-USER appuser
 
 # Expose the port
 EXPOSE 8080
