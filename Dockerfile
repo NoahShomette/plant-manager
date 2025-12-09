@@ -1,7 +1,7 @@
 # Stage 1: Build
 FROM rust:1.88 AS backend_builder
 
-VOLUME ["/app/assets", "/app/config"]
+VOLUME ["/app/assets/photos", "/app/config"]
 
 # Install cross-compilation dependencies
 RUN apt-get update && \
