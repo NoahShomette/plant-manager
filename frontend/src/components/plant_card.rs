@@ -18,14 +18,14 @@ pub fn PlantCard(plant_id: Uuid) -> impl IntoView {
     let get_events = RwSignal::new(GetEvent {
         event_type: Uuid::parse_str(PLANT_NAME_EVENT_ID).expect("Invalid UUID"),
         plant_id: plant_id,
-        request_details: GetEventType::LastNth(1),
+        request_details: GetEventType::LastNth(1, 0),
     });
     let request_events = request_events_resource(get_events);
 
     let get_events = RwSignal::new(GetEvent {
         event_type: Uuid::parse_str(PHOTO_EVENT_TYPE_ID).expect("Invalid UUID"),
         plant_id: plant_id,
-        request_details: GetEventType::LastNth(1),
+        request_details: GetEventType::LastNth(1, 0),
     });
     let request_photos = request_events_resource(get_events);
     let screen_width = use_breakpoints(breakpoints_tailwind());
@@ -52,12 +52,13 @@ pub fn PlantCard(plant_id: Uuid) -> impl IntoView {
         <a href=format!("/plant/{}/view", plant_id.to_string())>
             <div class="bg-(--card) hover:bg-(--accent) p-1 rounded-(--radius) hover:scale-105 transition duration-150">
                 <Suspense fallback=move || {
-                    view! { <p>"Loading..."</p> }
+                    view! {
+                        {move || view! {<div class={format!("m-2 rounded-(--radius) max-w-[400px] aspect-square flex justify-center content-center")} style={ move || format!("background: {}", plant_color.0.get())}>
+                            <Icon icon=icondata::ChPlantPot width=icon_size.0.get() height=icon_size.0.get() class="text-(--foreground)"></Icon>
+                            </div>}}
+                    }
                 }>
                     {move || Suspend::new(async move {
-
-
-
                         let data = request_photos.await;
                         match data.iter().next() {
                             Some(photo) => {

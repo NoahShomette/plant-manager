@@ -25,16 +25,9 @@ pub fn AppStorageComponent(children: Children) -> impl IntoView {
         write: pv_set,
     });
 
-    let UseEventSourceReturn {
-        
-        data,
-        
-        
-        ..
-    } = use_event_source::<DirtyCache, JsonSerdeCodec>(&format!(
-        "{}/dirty-cache",
-        base_server_addr()
-    ));
+    let UseEventSourceReturn { data, .. } = use_event_source::<DirtyCache, JsonSerdeCodec>(
+        &format!("{}/dirty-cache", base_server_addr()),
+    );
 
     Effect::new(move |_| {
         if let Some(dirty_cache) = data.get() {

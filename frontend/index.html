@@ -11,7 +11,7 @@
         <link data-trunk rel="copy-dir" href="public/config/" />
         <script src="/js-yaml.min.js"></script>
         <script type="module">
-            fetch("/config/config.yaml")
+            fetch("/config/frontend-config.yaml")
                 .then((response) => {
                     if (!response.ok) {
                         throw new Error(

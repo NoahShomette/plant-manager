@@ -48,3 +48,4 @@ sqlx = { version = "0.8", features = [
 ] }
 uuid = { version = "1.18.0", features = ["v4"] }
 async-stream = { version = "*" }
+image = { version = "0.25.6", features = ["serde"] }

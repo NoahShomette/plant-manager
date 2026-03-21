@@ -33,8 +33,8 @@ pub struct GetEvent {
 pub enum GetEventType {
     /// Returns all events up to the given date
     Span(NaiveDateTime, NaiveDateTime),
-    /// Returns the last N dates
-    LastNth(i32),
+    /// Returns the last N events offset by the second number
+    LastNth(i32, i32),
     /// Returns all events
     All,
 }

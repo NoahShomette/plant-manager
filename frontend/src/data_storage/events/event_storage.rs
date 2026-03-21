@@ -95,11 +95,12 @@ impl PlantEvents {
                     .map(|event| event.1.clone())
                     .collect(),
             ),
-            GetEventType::LastNth(n) => Some(
+            GetEventType::LastNth(n, offset) => Some(
                 events
                     .iter()
                     .map(|event| event.1.clone())
                     .rev()
+                    .skip(offset as usize)
                     .take(n as usize)
                     .collect(),
             ),
@@ -153,8 +154,8 @@ impl PlantEvents {
                 };
                 naive_date_time >= earliest_event
             }
-            GetEventType::LastNth(nth) => {
-                self.events.get(&request.event_type).iter().count() >= nth as usize
+            GetEventType::LastNth(nth, offset) => {
+                self.events.get(&request.event_type).iter().count() >= (nth + offset) as usize
             }
             GetEventType::All => false,
         }

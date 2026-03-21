@@ -1,22 +1,19 @@
+use std::io::Cursor;
+
 use crate::app::events::new_event;
-use axum::{
-    body::Body,
-    extract::State,
-    http::StatusCode,
-    response::Response,
-    Json,
-};
+use axum::{Json, body::Body, extract::State, http::StatusCode, response::Response};
 use chrono::Utc;
+use image::{DynamicImage, ImageDecoder, ImageReader, codecs::png::PngDecoder};
 use shared::{
-    events::{events_http::NewEvent, PHOTO_EVENT_TYPE_ID},
-    photos::NewPhoto,
     DirtyCache,
+    events::{PHOTO_EVENT_TYPE_ID, events_http::NewEvent},
+    photos::NewPhoto,
 };
 use sqlx::PgPool;
 use tokio::{fs, sync::mpsc::Sender};
 use tracing::debug;
-use uuid::uuid;
 use uuid::Uuid;
+use uuid::uuid;
 
 /// Creates a new plant on the server and returns a basic plant demographic to the client
 pub async fn new_photo(
@@ -26,6 +23,43 @@ pub async fn new_photo(
 ) -> Response {
     let photo_id = Uuid::new_v4();
     let file_location = format!("./assets/photos/{}.png", photo_id);
+    let thumbs_file_location = format!("./assets/photos/thumbs/{}.png", photo_id);
+
+    let thumbnail =
+        match ImageReader::new(Cursor::new(new_photo.photo_binary.clone())).with_guessed_format() {
+            Ok(ok) => match ok.decode() {
+                Ok(ok) => ok,
+                Err(err) => {
+                    return Response::builder()
+                        .status(StatusCode::INTERNAL_SERVER_ERROR)
+                        .body(Body::from(err.to_string()))
+                        .unwrap();
+                }
+            },
+            Err(err) => {
+                return Response::builder()
+                    .status(StatusCode::INTERNAL_SERVER_ERROR)
+                    .body(Body::from(err.to_string()))
+                    .unwrap();
+            }
+        };
+
+    let thumbnail = thumbnail.resize(200, 200, image::imageops::FilterType::Gaussian);
+
+    let mut buf: Vec<u8> = Vec::new();
+    thumbnail
+        .write_to(&mut Cursor::new(&mut buf), image::ImageFormat::Png)
+        .unwrap();
+
+    let _result = match fs::write(&thumbs_file_location, buf).await {
+        Ok(ok) => ok,
+        Err(err) => {
+            return Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(Body::from(err.to_string()))
+                .unwrap();
+        }
+    };
 
     let _result = match fs::write(&file_location, new_photo.photo_binary).await {
         Ok(ok) => ok,
@@ -33,7 +67,7 @@ pub async fn new_photo(
             return Response::builder()
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
                 .body(Body::from(err.to_string()))
-                .unwrap()
+                .unwrap();
         }
     };
 
@@ -50,7 +84,7 @@ pub async fn new_photo(
                 return Response::builder()
                     .status(StatusCode::INTERNAL_SERVER_ERROR)
                     .body(Body::from(err.to_string()))
-                    .unwrap()
+                    .unwrap();
             }
         };
 
@@ -72,8 +106,6 @@ pub async fn new_photo(
             cache: shared::CacheType::Plant(new_photo.plant_id),
         })
         .await;
-
-
 
     new_photo_event_row
 }

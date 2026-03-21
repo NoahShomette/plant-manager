@@ -18,8 +18,7 @@ mod theme;
 use crate::{
     components::{footer::Footer, navbar::Navbar},
     data_storage::AppStorageComponent,
-    pages::{gallery::Gallery, home::Home, new_plant::NewPlantPage, plant_page::PlantPage},
-    server_helpers::default_http_request,
+    pages::{home::Home, new_plant::NewPlantPage, plant_page::PlantPage},
 };
 
 /// An app router which renders the homepage and handles 404's
@@ -27,12 +26,6 @@ use crate::{
 pub fn App() -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
-
-    // dotenvy::from_filename("/.env").unwrap();
-    // println!(
-    //     "cargo::rustc-env=SERVER_ADDR={}",
-    //     env::var("SERVER_ADDR").unwrap()
-    // );
 
     let theme = RwSignal::new(theme::update_theme());
 
@@ -54,8 +47,8 @@ pub fn App() -> impl IntoView {
                         <Router>
                             <Routes fallback=|| view! { NotFound }>
                                 <Route path=path!("/") view=Home />
-                                <Route path=path!("/gallery") view=Gallery />
-                                <Route path=path!("/plant/new") view=NewPlantPage />
+                                //<Route path=path!("/gallery") view=Gallery />
+                                //<Route path=path!("/plant/new") view=NewPlantPage />
                                 <Route path=path!("/plant/:id/view") view=PlantPage />
                                 <Route path=path!("/plant/:id/timeline") view=NewPlantPage />
                                 <Route

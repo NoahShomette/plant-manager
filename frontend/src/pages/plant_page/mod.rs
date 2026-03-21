@@ -2,7 +2,7 @@
 //!
 //! Includes Timeline and Edit views
 
-use std::io::Cursor;
+use std::{collections::VecDeque, io::Cursor};
 
 use chrono::{Local, Utc};
 use leptos::{prelude::*, reactive::spawn_local};
@@ -16,7 +16,7 @@ use shared::{
 };
 
 use thaw::{
-    Button, Dialog, DialogBody, DialogContent, DialogSurface, DialogTitle, FileList, Upload,
+    Button, Dialog, DialogBody, DialogContent, DialogSurface, DialogTitle, FileList, Icon, Upload,
 };
 use uuid::Uuid;
 use wasm_bindgen_futures::JsFuture;
@@ -26,6 +26,7 @@ use crate::{
     components::plant_components::{
         event::{EventEditComponent, EventViewComponent},
         photo::PhotoDisplayComponent,
+        photo_placeholder::PhotoPlaceholderDisplayComponent,
     },
     data_storage::events::{
         event_storage::request_events_resource, new_event_action, EventListContext,
@@ -49,14 +50,14 @@ pub fn PlantPage() -> impl IntoView {
     let get_events = RwSignal::new(GetEvent {
         event_type: Uuid::parse_str(PLANT_NAME_EVENT_ID).expect("Invalid UUID"),
         plant_id: plant_id,
-        request_details: GetEventType::LastNth(1),
+        request_details: GetEventType::LastNth(1, 0),
     });
     let request_names = request_events_resource(get_events);
 
     let get_events = RwSignal::new(GetEvent {
         event_type: Uuid::parse_str(PHOTO_EVENT_TYPE_ID).expect("Invalid UUID"),
         plant_id: plant_id,
-        request_details: GetEventType::LastNth(3),
+        request_details: GetEventType::LastNth(5, 0),
     });
     let request_photos = request_events_resource(get_events);
 
@@ -81,25 +82,54 @@ pub fn PlantPage() -> impl IntoView {
     let name_input_ref = NodeRef::new();
     let uploaded_image = RwSignal::new(None::<Vec<u8>>);
 
-    let custom_request =
-        move |file_list: FileList| spawn_local(submit_new_photos(file_list, uploaded_image));
     let new_photo_action = new_photo_action();
+    let custom_request = move |file_list: FileList| {
+        let async_closure = async move || {
+            submit_new_photos(file_list, uploaded_image).await;
+            let Some(uploaded_image) = uploaded_image.get_untracked() else {
+                return;
+            };
+            new_photo_action.dispatch(NewPhoto {
+                plant_id,
+                timestamp: Local::now().naive_local().and_utc().timestamp(),
+                photo_binary: uploaded_image,
+            });
+        };
+        spawn_local(async_closure());
+    };
 
     view! {
-        <div class="container flex flex-col items-center">
-            <div>
-                <div class="flex flex-row items-center">
-                    {
-                        view! {
-                            <input
-                                node_ref=name_input_ref
-                                type="text"
-                                class="text-secondary p-4 text-3xl  w-full font-extrabold tracking-wide italic"
-                                bind:value=new_name
-                                on:blur=move |_| {
-                                    if new_name.get() == canonical_name.get() {
-                                        return;
-                                    }
+        <div class="flex flex-col items-center">
+        <div class="flex flex-col items-center justify-center">
+            <div class="flex flex-row items-center justify-center">
+                {
+                    view! {
+                        <input
+                            node_ref=name_input_ref
+                            type="text"
+                            class="text-secondary p-4 mt-5 text-6xl  w-full font-extrabold tracking-wide italic text-wrap text-left"
+                            bind:value=new_name
+                            on:blur=move |_| {
+                                if new_name.get() == canonical_name.get() {
+                                    return;
+                                }
+                                new_event_click
+                                    .clone()
+                                    .dispatch(NewEvent {
+                                        event_type: Uuid::parse_str(PLANT_NAME_EVENT_ID)
+                                            .expect("Invalid UUID"),
+                                        plant_id,
+                                        event_data: shared::events::EventData::String(
+                                            new_name.get(),
+                                        ),
+                                        event_date: Utc::now().naive_utc(),
+                                    });
+                            }
+                            on:keyup=move |event| {
+                                if new_name.get() == canonical_name.get() {
+                                    return;
+                                }
+                                if event.key() == "Enter" {
                                     new_event_click
                                         .clone()
                                         .dispatch(NewEvent {
@@ -111,65 +141,69 @@ pub fn PlantPage() -> impl IntoView {
                                             ),
                                             event_date: Utc::now().naive_utc(),
                                         });
-                                }
-                                on:keyup=move |event| {
-                                    if new_name.get() == canonical_name.get() {
-                                        return;
-                                    }
-                                    if event.key() == "Enter" {
-                                        new_event_click
-                                            .clone()
-                                            .dispatch(NewEvent {
-                                                event_type: Uuid::parse_str(PLANT_NAME_EVENT_ID)
-                                                    .expect("Invalid UUID"),
-                                                plant_id,
-                                                event_data: shared::events::EventData::String(
-                                                    new_name.get(),
-                                                ),
-                                                event_date: Utc::now().naive_utc(),
-                                            });
-                                        if let Some(input) = name_input_ref.get() {
-                                            let _ = input.blur();
-                                        }
+                                    if let Some(input) = name_input_ref.get() {
+                                        let _ = input.blur();
                                     }
                                 }
-                            />
-                        }
-                    }
-
-                </div>
-
-                <div>
-                    <For
-                        each=move || {
-                            if let Some(data) = request_photos.get() { data } else { vec![] }
-                        }
-                        key=|item| item.id
-                        children=move |event_type| {
-                            view! {
-                                <PhotoDisplayComponent photo_location=event_type
-                                    .get()
-                                    .expect_kind_string()
-                                    .unwrap() />
                             }
-                        }
-                    />
-                    <Upload custom_request>
-                        <Button>"Select Photos"</Button>
-                    </Upload>
-                    <Button on_click=move |_| {
-                        let Some(uploaded_image) = uploaded_image.get_untracked() else {
-                            return;
-                        };
-                        new_photo_action
-                            .dispatch(NewPhoto {
-                                plant_id,
-                                timestamp: Local::now().naive_local().and_utc().timestamp(),
-                                photo_binary: uploaded_image,
-                            });
-                    }>"Upload"</Button>
-                </div>
+                        />
+                    }
+                }
 
+            </div>
+                <Suspense fallback=move || {
+                    view!{
+                        <PhotoPlaceholderDisplayComponent use_color=None/>
+                    }
+                }>
+                    {move || Suspend::new(async move {
+                        let data = request_photos.await;
+                        let mut data: VecDeque<EventInstance> = data.into();
+                        match data.pop_front() {
+                            Some(photo) => {
+                                view! {
+                                    <div class="m-2 flex flex-col justify-center content-center">
+                                    <div class="max-w-[400px] aspect-square flex flex-col justify-center content-center">
+                                        <PhotoDisplayComponent photo_location=photo
+                                            .data
+                                            .expect_kind_string()
+                                            .unwrap() />
+                                    </div>
+                                    <div class="grid grid-cols-5 max-w-[400px]">
+                                        <For
+                                        each=move || {
+                                            data.clone()
+                                        }
+                                        key=|item| item.id
+                                        children=move |event_type| {
+                                            view! {
+                                                <div class="m-2 aspect-square flex justify-center content-center">
+                                                <PhotoDisplayComponent photo_location=event_type
+                                                    .get()
+                                                    .expect_kind_string()
+                                                    .unwrap() />
+                                                    </div>
+                                            }
+                                        }
+                                    />
+                                    <Upload custom_request>
+                                        <Button>"Select Photos"</Button>
+                                    </Upload>
+                                    </div>
+                                    </div>
+
+                                }
+                                    .into_any()
+                            }
+                            None => view! {
+                                <PhotoPlaceholderDisplayComponent use_color=None/>
+                                <Upload custom_request>
+                                    <Button>"Select Photos"</Button>
+                                </Upload>
+                            }.into_any(),
+                        }
+                    })}
+                </Suspense>
                 <div>
                     <For
                         each=move || {
@@ -217,9 +251,6 @@ async fn submit_new_photos(file_list: FileList, uploaded_image: RwSignal<Option<
             .unwrap();
 
         uploaded_image.set(Some(buf));
-        //let image = ImageReader::new(buffer.);
-
-        //ImageReader::new(file.stream());
     }
 }
 
@@ -229,7 +260,7 @@ fn EventDisplayComponent(event_type: EventType, plant_id: Uuid, num_events: i32)
     let get_events = RwSignal::new(GetEvent {
         event_type: event_type.id,
         plant_id: plant_id,
-        request_details: GetEventType::LastNth(num_events),
+        request_details: GetEventType::LastNth(num_events, 0),
     });
 
     let (events, set_events) = signal(vec![]);

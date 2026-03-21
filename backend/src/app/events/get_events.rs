@@ -2,13 +2,13 @@ use axum::{body::Body, extract::State, http::StatusCode, response::Response};
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use shared::events::{
-    events_http::{GetEvent, GetEventType},
     EventData, EventInstance, EventType,
+    events_http::{GetEvent, GetEventType},
 };
-use sqlx::{prelude::FromRow, types::Json, PgPool, Pool, Postgres};
+use sqlx::{PgPool, Pool, Postgres, prelude::FromRow, types::Json};
 use uuid::Uuid;
 
-use crate::app::events::get_event_types::{get_event_types_custom, GetDatabaseEventTypes};
+use crate::app::events::get_event_types::{GetDatabaseEventTypes, get_event_types_custom};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug, FromRow)]
 pub struct EventInstanceRow {
@@ -37,7 +37,7 @@ pub async fn get_events(
             return Response::builder()
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
                 .body(Body::from(err.to_string()))
-                .unwrap()
+                .unwrap();
         }
     };
 
@@ -60,7 +60,7 @@ pub async fn get_last_event(
     plant_id: Uuid,
     pool: Pool<Postgres>,
 ) -> Result<Option<EventInstance>, sqlx::Error> {
-    let events = get_event_custom(event_type, plant_id, GetEventType::LastNth(1), pool).await?;
+    let events = get_event_custom(event_type, plant_id, GetEventType::LastNth(1, 0), pool).await?;
 
     Ok(events.get(0).cloned())
 }
@@ -96,7 +96,7 @@ pub async fn get_event_custom(
     let query = match request_details {
         shared::events::events_http::GetEventType::Span(naive_date_time, naive_date_time1) => {
             query_string = format!(
-                r#"SELECT id, event_type_id, plant_id, data, event_date FROM {} WHERE event_date >= $1 AND event_date <= $2 AND plant_id = $3 AND event_type_id = $4"#,
+                r#"SELECT id, event_type_id, plant_id, data, event_date FROM {} WHERE event_date >= $1 AND event_date <= $2 AND plant_id = $3 AND event_type_id = $4 ORDER BY event_date "#,
                 table_name
             );
 
@@ -106,19 +106,20 @@ pub async fn get_event_custom(
                 .bind(plant_id)
                 .bind(event_type.id)
         }
-        shared::events::events_http::GetEventType::LastNth(n) => {
+        shared::events::events_http::GetEventType::LastNth(n, offset) => {
             query_string = format!(
-                r#"SELECT id, event_type_id, plant_id, data, event_date FROM {} WHERE plant_id = $2 AND event_type_id = $3 ORDER BY event_date DESC LIMIT $1"#,
+                r#"SELECT id, event_type_id, plant_id, data, event_date FROM {} WHERE plant_id = $2 AND event_type_id = $3 ORDER BY event_date DESC LIMIT $1 OFFSET $4"#,
                 table_name
             );
             sqlx::query_as(&query_string)
                 .bind(n)
                 .bind(plant_id)
                 .bind(event_type.id)
+                .bind(offset)
         }
         shared::events::events_http::GetEventType::All => {
             query_string = format!(
-                r#"SELECT id, event_type_id, plant_id, data, event_date FROM {} WHERE plant_id = $1 AND event_type_id = $2"#,
+                r#"SELECT id, event_type_id, plant_id, data, event_date FROM {} WHERE plant_id = $1 AND event_type_id = $2 ORDER BY event_date "#,
                 table_name
             );
 
