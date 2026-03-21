@@ -15,7 +15,6 @@ use uuid::Uuid;
 use crate::{
     data_storage::{
         plants::{request_plant_demographic, PlantStorage, PlantStorageContext},
-        DirtyManager, DirtyManagerContext,
     },
     server_helpers::get_request,
 };
@@ -42,19 +41,6 @@ pub fn PlantListComponent(children: Children) -> impl IntoView {
     let pv_context: LastDemographicRequestContext =
         expect_context::<LastDemographicRequestContext>();
     Effect::new(move |_| {
-        spawn_local(get_plant_list(
-            pv_context.get.get_untracked(),
-            pv_context.write,
-            plant_list_context.get_plant_list,
-            plant_list_context.write_plant_list,
-            plant_storage_context.write_plant_storage,
-        ))
-    });
-
-    let dirty_manager = expect_context::<DirtyManagerContext>();
-
-    Effect::new(move |_| {
-        dirty_manager.get.get();
         spawn_local(get_plant_list(
             pv_context.get.get_untracked(),
             pv_context.write,

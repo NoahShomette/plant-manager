@@ -16,7 +16,7 @@ use shared::{
 };
 
 use thaw::{
-    Button, Dialog, DialogBody, DialogContent, DialogSurface, DialogTitle, FileList, Icon, Upload,
+    Button, Dialog, DialogBody, DialogContent, DialogSurface, DialogTitle, FileList, Upload,
 };
 use uuid::Uuid;
 use wasm_bindgen_futures::JsFuture;

@@ -1,7 +1,5 @@
 //! Stores a local copy of plants for lowered network usage and faster responses
 
-use std::time::Duration;
-
 use chrono::{DateTime, NaiveDateTime, Utc};
 use leptos::{
     prelude::{Write, WriteSignal},
