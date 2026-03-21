@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use shared::events::{events_http::NewEvent, EventInstance, EventType};
 
 use crate::{
-    data_storage::{events::event_storage::EventInstanceStorageComponent, DirtyManagerContext},
+    data_storage::{ DirtyManagerContext},
     server_helpers::{get_request, post_request},
 };
 
@@ -58,7 +58,7 @@ pub fn EventStorageComponent(children: Children) -> impl IntoView {
         ))
     });
 
-    view! { <EventInstanceStorageComponent>{children()}</EventInstanceStorageComponent> }
+    view! { {children()} }
 }
 
 #[derive(Clone, PartialEq)]
