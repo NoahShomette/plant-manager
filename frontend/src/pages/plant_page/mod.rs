@@ -10,22 +10,19 @@ use leptos_router::hooks::use_params_map;
 use shared::{
     events::{
         events_http::{GetEvent, GetEventType, NewEvent},
-        EventInstance, EventType, PHOTO_EVENT_TYPE_ID, PLANT_NAME_EVENT_ID, PLANT_STATE_ID,
+        EventInstance, PHOTO_EVENT_TYPE_ID, PLANT_NAME_EVENT_ID, PLANT_STATE_ID,
     },
     photos::NewPhoto,
 };
 
-use thaw::{
-    Button, Dialog, DialogBody, DialogContent, DialogSurface, DialogTitle, FileList, Icon, Upload,
-};
+use thaw::{Button, FileList, Upload};
 use uuid::Uuid;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::js_sys::Uint8Array;
 
 use crate::{
     components::plant_components::{
-        event::{EventEditComponent, EventViewComponent},
-        photo::PhotoDisplayComponent,
+        event_display::EventDisplayComponent, photo::PhotoDisplayComponent,
         photo_placeholder::PhotoPlaceholderDisplayComponent,
     },
     data_storage::events::{
@@ -57,7 +54,7 @@ pub fn PlantPage() -> impl IntoView {
     let get_events = RwSignal::new(GetEvent {
         event_type: Uuid::parse_str(PHOTO_EVENT_TYPE_ID).expect("Invalid UUID"),
         plant_id: plant_id,
-        request_details: GetEventType::LastNth(5, 0),
+        request_details: GetEventType::LastNth(3, 0),
     });
     let request_photos = request_events_resource(get_events);
 
@@ -99,37 +96,77 @@ pub fn PlantPage() -> impl IntoView {
     };
 
     view! {
-        <div class="flex flex-col items-center">
-        <div class="flex flex-col items-center justify-center">
-            <div class="flex flex-row items-center justify-center">
-                {
-                    view! {
-                        <input
-                            node_ref=name_input_ref
-                            type="text"
-                            class="text-secondary p-4 mt-5 text-6xl  w-full font-extrabold tracking-wide italic text-wrap text-left"
-                            bind:value=new_name
-                            on:blur=move |_| {
-                                if new_name.get() == canonical_name.get() {
-                                    return;
+        <div class="container flex flex-col">
+            <div class="flex flex-col items-center content-center justify-center">
+                <Suspense fallback=move || {
+                    view! { <PhotoPlaceholderDisplayComponent use_color=None /> }
+                }>
+                    {move || Suspend::new(async move {
+                        let data = request_photos.await;
+                        let mut data: VecDeque<EventInstance> = data.into();
+                        match data.pop_front() {
+                            Some(photo) => {
+                                view! {
+                                    <div class="m-2 flex flex-row">
+                                        <div class="aspect-square justify-center content-center max-w-[240px] max-h-[240px]">
+                                            <PhotoDisplayComponent photo_location=photo
+                                                .data
+                                                .expect_kind_string()
+                                                .unwrap() />
+                                        </div>
+                                        <div class="flex flex-col max-w-[80px]  max-h-[240px]">
+                                            <For
+                                                each=move || { data.clone() }
+                                                key=|item| item.id
+                                                children=move |event_type| {
+                                                    view! {
+                                                        <div class="m-2 aspect-square flex justify-center content-center">
+                                                            <PhotoDisplayComponent photo_location=event_type
+                                                                .get()
+                                                                .expect_kind_string()
+                                                                .unwrap() />
+                                                        </div>
+                                                    }
+                                                }
+                                            />
+                                            <Upload custom_request>
+                                                <div class="aspect-square hover:bg-border bg-card border-border border-1 p-1 m-2 rounded-(--radius) flex justify-center items-center content-center">
+                                                    <a class="text-foreground text-xs font-bold tracking-wide text-center">
+                                                        "Upload Photos"
+                                                    </a>
+                                                </div>
+                                            </Upload>
+                                        </div>
+                                    </div>
                                 }
-                                new_event_click
-                                    .clone()
-                                    .dispatch(NewEvent {
-                                        event_type: Uuid::parse_str(PLANT_NAME_EVENT_ID)
-                                            .expect("Invalid UUID"),
-                                        plant_id,
-                                        event_data: shared::events::EventData::String(
-                                            new_name.get(),
-                                        ),
-                                        event_date: Utc::now().naive_utc(),
-                                    });
+                                    .into_any()
                             }
-                            on:keyup=move |event| {
-                                if new_name.get() == canonical_name.get() {
-                                    return;
+                            None => {
+
+                                view! {
+                                    <PhotoPlaceholderDisplayComponent use_color=None />
+                                    <Upload custom_request>
+                                        <Button>"Select Photos"</Button>
+                                    </Upload>
                                 }
-                                if event.key() == "Enter" {
+                                    .into_any()
+                            }
+                        }
+                    })}
+                </Suspense>
+
+                <div class="flex flex-row items-center justify-center">
+                    {
+                        view! {
+                            <input
+                                node_ref=name_input_ref
+                                type="text"
+                                class="text-secondary p-4 mt-3 mx-3 text-4xl w-full font-extrabold tracking-wide italic text-wrap text-left"
+                                bind:value=new_name
+                                on:blur=move |_| {
+                                    if new_name.get() == canonical_name.get() {
+                                        return;
+                                    }
                                     new_event_click
                                         .clone()
                                         .dispatch(NewEvent {
@@ -141,70 +178,35 @@ pub fn PlantPage() -> impl IntoView {
                                             ),
                                             event_date: Utc::now().naive_utc(),
                                         });
-                                    if let Some(input) = name_input_ref.get() {
-                                        let _ = input.blur();
+                                }
+                                on:keyup=move |event| {
+                                    if new_name.get() == canonical_name.get() {
+                                        return;
+                                    }
+                                    if event.key() == "Enter" {
+                                        new_event_click
+                                            .clone()
+                                            .dispatch(NewEvent {
+                                                event_type: Uuid::parse_str(PLANT_NAME_EVENT_ID)
+                                                    .expect("Invalid UUID"),
+                                                plant_id,
+                                                event_data: shared::events::EventData::String(
+                                                    new_name.get(),
+                                                ),
+                                                event_date: Utc::now().naive_utc(),
+                                            });
+                                        if let Some(input) = name_input_ref.get() {
+                                            let _ = input.blur();
+                                        }
                                     }
                                 }
-                            }
-                        />
-                    }
-                }
-
-            </div>
-                <Suspense fallback=move || {
-                    view!{
-                        <PhotoPlaceholderDisplayComponent use_color=None/>
-                    }
-                }>
-                    {move || Suspend::new(async move {
-                        let data = request_photos.await;
-                        let mut data: VecDeque<EventInstance> = data.into();
-                        match data.pop_front() {
-                            Some(photo) => {
-                                view! {
-                                    <div class="m-2 flex flex-col justify-center content-center">
-                                    <div class="max-w-[400px] aspect-square flex flex-col justify-center content-center">
-                                        <PhotoDisplayComponent photo_location=photo
-                                            .data
-                                            .expect_kind_string()
-                                            .unwrap() />
-                                    </div>
-                                    <div class="grid grid-cols-5 max-w-[400px]">
-                                        <For
-                                        each=move || {
-                                            data.clone()
-                                        }
-                                        key=|item| item.id
-                                        children=move |event_type| {
-                                            view! {
-                                                <div class="m-2 aspect-square flex justify-center content-center">
-                                                <PhotoDisplayComponent photo_location=event_type
-                                                    .get()
-                                                    .expect_kind_string()
-                                                    .unwrap() />
-                                                    </div>
-                                            }
-                                        }
-                                    />
-                                    <Upload custom_request>
-                                        <Button>"Select Photos"</Button>
-                                    </Upload>
-                                    </div>
-                                    </div>
-
-                                }
-                                    .into_any()
-                            }
-                            None => view! {
-                                <PhotoPlaceholderDisplayComponent use_color=None/>
-                                <Upload custom_request>
-                                    <Button>"Select Photos"</Button>
-                                </Upload>
-                            }.into_any(),
+                            />
                         }
-                    })}
-                </Suspense>
-                <div>
+                    }
+
+                </div>
+
+                <div class="w-full flex flex-col justify-start">
                     <For
                         each=move || {
                             let mut list = event_list.get_event_list.get().0.clone();
@@ -251,86 +253,6 @@ async fn submit_new_photos(file_list: FileList, uploaded_image: RwSignal<Option<
             .unwrap();
 
         uploaded_image.set(Some(buf));
-    }
-}
-
-/// Component to view a specific type of event
-#[component]
-fn EventDisplayComponent(event_type: EventType, plant_id: Uuid, num_events: i32) -> impl IntoView {
-    let get_events = RwSignal::new(GetEvent {
-        event_type: event_type.id,
-        plant_id: plant_id,
-        request_details: GetEventType::LastNth(num_events, 0),
-    });
-
-    let (events, set_events) = signal(vec![]);
-
-    let event_action = request_events_resource(get_events);
-
-    Effect::new(move || {
-        if let Some(events) = event_action.get() {
-            set_events.set(events);
-        }
-    });
-
-    let open = RwSignal::new(false);
-    view! {
-        <div>
-            <div class="flex flex-row">
-                <h3 class="text-secondary p-4 text-lg font-bold">{event_type.name.clone()}</h3>
-                <Button on_click=move |_| open.set(true)>"New"</Button>
-                <Dialog open>
-                    <DialogSurface>
-                        <DialogBody>
-                            <DialogTitle>
-                                {
-                                    view! {
-                                        <div class="flex justify-between">
-                                            <h2>{event_type.name.clone()}</h2>
-                                            <Button on_click=move |_| open.set(false)>"Close"</Button>
-                                        </div>
-                                    }
-                                }
-                            </DialogTitle>
-                            <DialogContent>
-                                {
-                                    view! {
-                                        <EventEditComponent
-                                            event_id=event_type.id
-                                            plant_id=plant_id
-                                        />
-                                    }
-                                }
-                            </DialogContent>
-                        </DialogBody>
-                    </DialogSurface>
-                </Dialog>
-            </div>
-
-            {move || match events.get().is_empty() {
-                false => {
-                    // We have succesfully requested the data
-                    // We have events of this type
-                    view! {
-                        <div class="flex flex-col">
-                            <For
-                                each=move || events.get()
-                                key=|item| item.id
-                                children=move |event| {
-                                    view! {
-                                        <div>
-                                            <EventViewComponent event />
-                                        </div>
-                                    }
-                                }
-                            />
-                        </div>
-                    }
-                        .into_any()
-                }
-                true => view! { <p>"No events found..."</p> }.into_any(),
-            }}
-        </div>
     }
 }
 

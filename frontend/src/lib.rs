@@ -43,7 +43,7 @@ pub fn App() -> impl IntoView {
                 <Meta name="viewport" content="width=device-width, initial-scale=1.0" />
                 <div class="flex flex-col items-stretch min-h-screen">
                     <Navbar />
-                    <div class="flex bg-background flex-col h-full mb-auto">
+                    <div class="flex bg-background items-center flex-col h-full mb-auto">
                         <Router>
                             <Routes fallback=|| view! { NotFound }>
                                 <Route path=path!("/") view=Home />
